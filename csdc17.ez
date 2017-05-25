@@ -389,7 +389,21 @@ GenomeClass {
 \end
 
 \GenomeClass::mutator : // Must return the number of mutations
-
+	unsigned int nbMutations = 0;
+	for(unsigned int i = 0; i < papers.size(); i++) {
+		if (tossCoin(pMutPerGene)){
+			Genome.match[i].date.min = ((int) random(0,12))*5;
+			Genome.match[i].date.hour = (int) random(0,24);
+			int rDay = (int) random(0, NB_DAYS);
+			int dayValue = (eventDate->start.tm_mday + rDay) % 31;
+			if(!dayValue) {
+				dayValue++;
+			}
+			Genome.match[i].date.day = dayValue;
+			nbMutations++;
+		}
+	}
+	return nbMutations;
 \end
 
 \GenomeClass::evaluator : // Returns the score as a real value
