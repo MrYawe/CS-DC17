@@ -366,10 +366,14 @@ GenomeClass {
 \GenomeClass::initialiser : // "initializer" is also accepted
 	for(unsigned int i = 0; i < papers.size(); i++) {
 		Genome.match[i].paperID = papers[i].ID;
-		Genome.match[i].date.min = (int) random(0,60);
+		Genome.match[i].date.min = ((int) random(0,12))*5;
 		Genome.match[i].date.hour = (int) random(0,24);
 		int rDay = (int) random(0, NB_DAYS);
-		Genome.match[i].date.day = (eventDate->start.tm_mday + rDay) % 30;
+		int dayValue = (eventDate->start.tm_mday + rDay) % 31;
+		if(!dayValue) {
+			dayValue++;
+		}
+		Genome.match[i].date.day = dayValue;
 	}
 \end
 
