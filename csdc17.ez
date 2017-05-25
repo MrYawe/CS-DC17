@@ -29,7 +29,8 @@ _______________________________________________________________*/
 #define MAX(x,y) ((x)>(y)?(x):(y))
 #define MIN(x,y) ((x)<(y)?(x):(y))
 */
-#define NBPAPERS 263 	/* Nombre de papers à placer */
+#define NB_PAPERS 263 	/* Nombre de papers à placer */
+#define NB_DAYS 2
 
 
 using namespace std;
@@ -117,16 +118,16 @@ void setEventDates() {
 
     if (strptime(jour1_debut.c_str(), "%F %T", &tm1_debut)){
     	cons1->start=tm1_debut;
-    } 
+    }
     if (strptime(jour1_fin.c_str(), "%F %T", &tm1_fin)){
     	cons1->end=tm1_fin;
-    } 
+    }
     if (strptime(jour2_debut.c_str(), "%F %T", &tm2_debut)){
     	cons2->start=tm2_debut;
-    } 
+    }
     if (strptime(jour2_fin.c_str(), "%F %T", &tm2_fin)){
     	cons2->end=tm2_fin;
-    } 
+    }
 
     eventDates.push_back(*cons1);
     eventDates.push_back(*cons2);
@@ -227,7 +228,7 @@ void displayConstraint(Constraint c) {
 
 
 void displayEventDate() {
-	cout << "Date de l'événement : Du "; 
+	cout << "Date de l'événement : Du ";
 
 	char mbstr[100];
 	char mbstr2[100];
@@ -246,7 +247,7 @@ void displayEventDate() {
 /*void displayEventDates() {
 	cout << "Dates de l'événement :" << endl;
 	for(unsigned int i = 0; i<eventDates.size();i++){
-		cout << "jour " << i << ": "; 
+		cout << "jour " << i << ": ";
 		displayConstraint(eventDates[i], 1);
 	}
 }*/
@@ -269,7 +270,7 @@ void displayPapers(Paper p) {
     } else {
 		cout << "    Pas de contraintes" << endl;
     }
-    
+
 	cout << "  jour 2:" << endl;
 
     if(p.day2.size()!=0){
@@ -291,7 +292,7 @@ void displayPapers(Paper p) {
 		cout << "    Pas de contraintes" << endl;
 	}
 
-    
+
 }
 
 /* ---------------------------------------------------------------------------- */
@@ -308,13 +309,22 @@ void displayPapers(Paper p) {
 /*********///             DECLARATION DES CLASSES               ///**************/
 /********************************************************************************/
 \User classes :
-
-
-GenomeClass {
-	int papersID[NBPAPERS];
+Date {
+	int min;
+	int hour;
+	int day;
+	int mon;
+	int year;
 }
 
+Match {
+  int paperID;
+	Date date;
+}
 
+GenomeClass {
+	Match match[NB_PAPERS];
+}
 \end
 
 \Before everything else function:
@@ -338,7 +348,7 @@ GenomeClass {
 
 
 
-	
+
 \end
 
 
@@ -358,7 +368,14 @@ GenomeClass {
 \end
 
 \GenomeClass::initialiser : // "initializer" is also accepted
-
+	unsigned int i = 0;
+	for(i = 0; i < papers.size(); i++) {
+		Genome.match[i].paperID = papers[i].ID
+		Genome.match[i].date.min = (int) random(0,60);
+		Genome.match[i].date.hour = (int) random(0,24);
+		int rDay = (int) random(0, NB_DAYS);
+		Genome.match[i].date.day = (eventDate->start.tm_mday + rDay) % 30;
+	}
 \end
 
 \GenomeClass::crossover :
@@ -374,7 +391,7 @@ GenomeClass {
 
 \end
 
-\User Makefile options: 
+\User Makefile options:
 CPPFLAGS+=-std=c++11
 \end
 
