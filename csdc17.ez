@@ -83,7 +83,9 @@ float pMutPerGene = 0.5;		/* probabilité de mutation par individu	*/
 clock_t	start, finish;			/* Pour estimer le temps de calcul		*/
 double runDuration;				/* temps de calcul						*/
 
-vector<Constraint> eventDates; 	/* Dates de l'événement 				*/
+//vector<Constraint> eventDates; 	/* Dates de l'événement 				*/
+Constraint* eventDate; 				/* Date de l'événement 				*/
+
 vector<Paper> papers;			/* Liste contenant tous les papers 		*/
 
 /* ---------------------------------------------------------------------------- */
@@ -96,7 +98,7 @@ vector<Paper> papers;			/* Liste contenant tous les papers 		*/
 
 /* Fonction de convertion, permet de changer une valeur numérique en texte pour son affichage	*/
 //template<typename T>string chiffre2string(T c) { ostringstream oss; oss << c; return oss.str(); }
-
+/*
 void setEventDates() {
 
 	Constraint* cons1 = new Constraint();
@@ -128,6 +130,16 @@ void setEventDates() {
 
     eventDates.push_back(*cons1);
     eventDates.push_back(*cons2);
+}*/
+
+void setEventDate() {
+	string jour_debut 	= "2015-09-30 06:00:00";
+	string jour_fin 	= "2015-09-30 23:59:59";
+
+	eventDate = new Constraint();
+
+	strptime(jour_debut.c_str(), "%F %T", &(eventDate->start));
+	strptime(jour_fin.c_str(), "%F %T", &(eventDate->end));
 }
 
 vector<Constraint> parseConstraints(string subject) {
@@ -147,7 +159,7 @@ vector<Constraint> parseConstraints(string subject) {
 				s1 >> std::get_time(&tm1, "%H:%M"); // or just %T in this case
 				s2 >> std::get_time(&tm2, "%H:%M"); // or just %T in this case
 				//cons->start = mktime(&tm1);
-        //cons->end = mktime(&tm2);
+        		//cons->end = mktime(&tm2);
 				cons->start = tm1;
 				cons->end = tm2;
 
@@ -209,20 +221,35 @@ void readPapersFile() {
 
 
 
-void displayConstraint(Constraint c, int boolFullDate) {
-	if(boolFullDate) {
-		cout << c.start.tm_mday << "-" << c.start.tm_mon << "-" << c.start.tm_year;
-	}
+void displayConstraint(Constraint c) {
 	cout << "    " << c.start.tm_hour << "h" << c.start.tm_min << " à " << c.end.tm_hour << "h" << c.end.tm_min << endl;
 }
 
-void displayEventDates() {
+
+void displayEventDate() {
+	cout << "Date de l'événement : Du "; 
+
+	char mbstr[100];
+	char mbstr2[100];
+
+
+	if (std::strftime(mbstr, sizeof(mbstr), "%F %T", &(eventDate->start))){
+		std::cout << mbstr << " au ";
+	}
+	if (std::strftime(mbstr2, sizeof(mbstr2), "%F %T", &(eventDate->end)))
+	{
+		std::cout << mbstr2 << endl;
+	}
+}
+
+
+/*void displayEventDates() {
 	cout << "Dates de l'événement :" << endl;
 	for(unsigned int i = 0; i<eventDates.size();i++){
 		cout << "jour " << i << ": "; 
 		displayConstraint(eventDates[i], 1);
 	}
-}
+}*/
 
 void displayPapers(Paper p) {
     cout << "ID :" << p.ID << endl;
@@ -237,7 +264,7 @@ void displayPapers(Paper p) {
     if(p.day1.size()!=0){
     	for(unsigned int i=0; i<p.day1.size(); i++)
 		{
-			displayConstraint(p.day1[i], 0);
+			displayConstraint(p.day1[i]);
 		}
     } else {
 		cout << "    Pas de contraintes" << endl;
@@ -248,7 +275,7 @@ void displayPapers(Paper p) {
     if(p.day2.size()!=0){
 		for(unsigned int i=0; i<p.day2.size(); i++)
 		{
-			displayConstraint(p.day2[i], 0);
+			displayConstraint(p.day2[i]);
 		}
 	} else {
 		cout << "    Pas de contraintes" << endl;
@@ -258,7 +285,7 @@ void displayPapers(Paper p) {
     if(p.day3.size()!=0){
 		for(unsigned int i=0; i<p.day3.size(); i++)
 		{
-			displayConstraint(p.day3[i], 0);
+			displayConstraint(p.day3[i]);
 		}
 	} else {
 		cout << "    Pas de contraintes" << endl;
@@ -293,7 +320,7 @@ GenomeClass {
 \Before everything else function:
 	start = clock();
 
-    setEventDates();
+    setEventDate();
 	readPapersFile();
 \end
 
@@ -307,7 +334,7 @@ GenomeClass {
 
 	displayPapers(papers[0]);
 
-	displayEventDates();
+	displayEventDate();
 
 
 
