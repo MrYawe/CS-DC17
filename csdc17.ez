@@ -169,6 +169,18 @@ void readPapersFile() {
     }
 }
 
+
+void affPapers(Paper p) {
+    std::cout << "ID :" << p.ID << "\n";
+    std::cout << "TrackID :" << p.TrackID << "\n";
+    std::cout << "SessionID :" << p.SessionID << "\n";
+    std::cout << "duration :" << p.duration << "\n";
+
+    //std::cout << "day1:" << p.day1 << "\n";
+    //std::cout << "day2 :" << p.day2 << "\n";
+    //std::cout << "day3 :" << p.day3 << "\n";
+}
+
 /* ---------------------------------------------------------------------------- */
 \end
 
@@ -187,7 +199,6 @@ void readPapersFile() {
 
 GenomeClass {
 	int papersA[NBPAPERS];
-	int scores[NBPAPERS];
 }
 
 
@@ -204,9 +215,11 @@ GenomeClass {
 	runDuration = (double)(finish - start) / CLOCKS_PER_SEC;
 	printf("TEMPS D'EXECUTION\t:\t%2.1f secondes\n", runDuration );
 
-	cout << papers[0].ID << endl;
+	std::cout << "Nb papers :" << papers.size() << "\n";
+
+	affPapers(papers[0]);
+
 	cout << papers[0].day1[0].start.tm_hour << endl;
-	//printf("TEMPS D'EXECUTION\t:\t%2.1f secondes\n", papers.size());
 \end
 
 
@@ -242,8 +255,8 @@ GenomeClass {
 
 \end
 
-\User Makefile options:
-CPPFLAGS+="-std=c++11"
+\User Makefile options: 
+CPPFLAGS+=-std=c++11
 \end
 
 /*mutation et crossover à 0 pour seqfault*/
