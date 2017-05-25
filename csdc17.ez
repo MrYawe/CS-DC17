@@ -31,6 +31,9 @@ _______________________________________________________________*/
 #define MAX(x,y) ((x)>(y)?(x):(y))
 #define MIN(x,y) ((x)<(y)?(x):(y))
 
+#define NBPAPERS 263 	/* Nombre de papers à placer */
+
+
 using namespace std;
 
 
@@ -61,6 +64,8 @@ float pMutPerGene = 0.5;	/* probabilité de mutation par individu	*/
 clock_t	start, finish;		/* Pour estimer le temps de calcul		*/
 double duration;			/* temps de calcul						*/
 
+vector<Paper> papers;		/* Liste contenant tous les papers 		*/
+
 /* ---------------------------------------------------------------------------- */
 \end
 
@@ -88,7 +93,6 @@ string cmpEspaceAlignDroite(string mot, int unsigned n)
 template<typename T>
 string chiffre2string(T c) { ostringstream oss; oss << c; return oss.str(); }
 
-vector<Paper> papers;
 void readPapersFile() {
 	std::string delimiter = "|";
 
@@ -225,13 +229,11 @@ Session
 }
 
 /* Classe représentant un génome, soit un emplois du temps complet.	*/
-Genome
-{
-	//CoursClass cours[NBCOURS];			/* les cours				*/
-	//ClassesClass classes[NBCLASSES];		/* les classes				*/
-	//ProfsClass profs[NBPROFS];			/* les profs				*/
-	//SallesClass	salles[NBSALLES];		/* les salles				*/
-	//CreneauxClass creneaux[NBCRENEAUX];	/* les créneaux				*/
+GenomeClass
+{ 
+	int papers[NBPAPERS];	/* tableau contenant l'identifiant des papers 	*/
+	//int dates[NBPAPERS];	/* tableau contenant les dates attribuées 		*/
+	int scores[NBPAPERS];	/* tableau contenant les scores attribués		*/
 }
 
 /*
@@ -264,4 +266,187 @@ typedef struct{
 */
 
 \end
+
+
+/************************************************************************************************/
+/********************///                     AFFICHAGE                     ///*******************/
+/************************************************************************************************/
+
+\GenomeClass::display:
 /* -------------------------------------------------------------------------------------------- */
+/* DECLARATION DES VARIABLES																	*/
+/* -------------------------------------------------------------------------------------------- */
+
+
+
+/* -------------------------------------------------------------------------------------------- */
+/* AFFICHAGE DE L'EDT																			*/
+/* -------------------------------------------------------------------------------------------- */
+
+
+/* -------------------------------------------------------------------------------------------- */
+/* AFFICHAGE DE L'EVALUATION 																					*/
+/* -------------------------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------------------------- */
+\end
+
+
+
+/************************************************************************************************/
+/********************///                  INITIALISATION                   ///*******************/
+/************************************************************************************************/
+
+\GenomeClass::initialiser :
+
+
+\end
+/* -------------------------------------------------------------------------------------------- */
+
+
+/************************************************************************************************/
+/********************///                     CROSS-OVER                    ///*******************/
+/************************************************************************************************/
+
+\GenomeClass::crossover :
+
+/*
+float	limite			= 0.5;
+
+for (int i=0; i<NBCOURS; i++)
+{
+	if((float)random(0.,1.) < limite)
+	{ child.cours[i].creneau = parent2.cours[i].creneau; }
+}*/
+
+\end
+/* -------------------------------------------------------------------------------------------- */
+
+
+/************************************************************************************************/
+/********************///                      MUTATION                     ///*******************/
+/************************************************************************************************/
+
+\GenomeClass::mutator : // retourne le nombre de mutations
+
+int	nb = 0;
+
+/* -------------------------------------------------------------------------------------------- */
+/* EVALUATION DES CRENEAUX									*/
+/* -------------------------------------------------------------------------------------------- */
+
+
+return nb;
+
+\end
+/* -------------------------------------------------------------------------------------------- */
+
+
+/************************************************************************************************/
+/********************///                     EVALUATION                    ///*******************/
+/************************************************************************************************/
+
+\GenomeClass::evaluator : // retourne le score
+
+/* Méthode réutilisée dans l'affichage (voir plus haut dans le code) et y est commentée		*/
+
+/* -------------------------------------------------------------------------------------------- */
+/* DECLARATION DES VARIABLES																	*/
+/* -------------------------------------------------------------------------------------------- */
+
+
+/* -------------------------------------------------------------------------------------------- */
+/* EVALUATION DE L'AFFECTATION (
+	on pourrait séparer :
+	- évaluation speaker (contrainte)
+	- évaluation session (cassure)
+	- 																							*/
+/* -------------------------------------------------------------------------------------------- */
+
+
+
+/* -------------------------------------------------------------------------------------------- */
+/* RETOUR DU SCORE										*/
+/* -------------------------------------------------------------------------------------------- */
+
+//score = totalR0 * VALERR0 + totalR1 * VALERR1 + totalR2 * VALERR2;
+//return score;
+
+\end
+/* -------------------------------------------------------------------------------------------- */
+
+
+/************************************************************************************************/
+/********************///                     PARAMETRAGE                    ///******************/
+/************************************************************************************************/
+
+\User Makefile options: 
+CPPFLAGS+=
+\end
+
+\Default run parameters :       		// Please let the parameters appear in this order
+
+  Number of generations :	100	     		// NB_GEN
+  Time limit:			10 			// In seconds, 0 to deactivate
+  Population size :		100			// POP_SIZE
+  Offspring size :		40%			// 40% 
+  Mutation probability :	1       		// MUT_PROB
+  Crossover probability :	1	      		// XOVER_PROB
+  Evaluator goal :		Minimise      		// Maximise
+  Selection operator:		Tournament 2.0
+  Surviving parents:		90%			// percentage or absolute  
+  Surviving offspring:		90%
+  Reduce parents operator:	Tournament 2
+  Reduce offspring operator:	Tournament 2
+  Final reduce operator:	Tournament 2
+
+  Elitism:			Strong			//Weak or Strong
+  Elite:			1
+  Print stats:			true			//Default: 1
+  Generate csv stats file:	false			
+  Generate gnuplot script:	false
+  Generate R script:		false
+  Plot stats:			false			//Default: 0
+
+  Remote island model:		false
+  IP file:			ip.txt 			//File containing all the remote island's IP
+  Migration probability:	0
+
+  Save population:		true
+  Start from file:		false
+
+
+  /** option des gens de 2015 
+    Number of generations : 300    // NB_GEN
+  Time limit: 0 			           // In seconds, 0 to deactivate
+  Population size : 64		   //POP_SIZE
+  Offspring size : 64// or a xx%
+  Mutation probability : 0.8       // MUT_PROB
+  Crossover probability : 1      // XOVER_PROB
+  Evaluator goal : maximise      // maximise
+  Selection operator: Tournament 0.6
+  Surviving parents: 100%        // Percentage or absolute  
+  Surviving offspring: 100%      // Percentage or absolute  d
+  Reduce parents operator: Tournament 2
+  Reduce offspring operator: Tournament 2
+  Final reduce operator: Tournament 2
+
+  Elitism: strong			           // Weak or Strong
+  Elite: 1
+  Print stats: true				       // Default: 1
+  Generate csv stats file:true			
+  Generate gnuplot script:false
+  Generate R script:false
+  Plot stats:true				         // Default: 0
+
+  Remote island model: true
+  IP file: ip.txt 			         // List of IP:PORT of islands to send individuals to
+  Migration probability: 0.3    // Probability of sending an individual per generation
+  Server port : 2929
+
+  Save population: false
+  Start from file:false
+  */
+  
+\end
+/* -------------------------------------------------------------------------------------------- */ 
