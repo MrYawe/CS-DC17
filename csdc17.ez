@@ -377,7 +377,7 @@ GenomeClass {
 	// must create "child" out of "parent1" and "parent2"
 	float limit = 0.5;
 
-	for (unsigned int i=0; i<NBPAPERS; i++)
+	for (unsigned int i=0; i<NB_PAPERS; i++)
 	{
 		if((float)random(0.,1.) < limit)
 		{ child.match[i].date = parent2.match[i].date; }
