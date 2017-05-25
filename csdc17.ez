@@ -1,0 +1,193 @@
+
+/*_____________________________________________________________
+
+Projet d'optimisation stochastique 2017
+Arnaud Steinmetz - Yannis Weishaupt
+Assignation de sessions/papiers à un calendrier sur les données du CS-DC15
+_______________________________________________________________*/
+
+\User declarations : 
+
+#include <math.h>
+#include <cstring>
+#include <stdio.h> 
+#include <stdlib.h> 
+#include <time.h>
+
+/*
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <cstdio>
+#include <cstdlib>
+#include <vector>
+#include <stdio.h>
+#include <string.h>
+#include <algorithm>
+*/
+
+
+#define Abs(x) ((x) < 0 ? -(x) : (x))
+#define MAX(x,y) ((x)>(y)?(x):(y))
+#define MIN(x,y) ((x)<(y)?(x):(y))
+
+using namespace std;
+
+
+/* ---------------------------------------------------------------------------- */
+/* Valeurs permettant la sélection par la fitness des individus :				*/
+
+#define VALERR0 100000	/* Valeur de pénalité contrainte oblig	*/
+#define VALERR1 1000	/* Valeur de pénalité contrainte forte	*/
+#define VALERR2 1		/* Valeur de pénalité contrainte faible */
+
+/********************************************************************************/
+/******///             DECLARATION DES VARIABLES GLOBALES               ///******/
+/********************************************************************************/
+
+float pMutPerGene = 0.5;	/* probabilité de mutation par individu	*/
+
+clock_t	start, finish;		/* Pour estimer le temps de calcul		*/
+double duration;			/* temps de calcul						*/
+
+/* ---------------------------------------------------------------------------- */
+\end
+
+\User functions:
+/********************************************************************************/
+/******///             DECLARATION DES FONCTIONS GLOBALES               ///******/
+/********************************************************************************/
+
+/* Fonction d'affichage, utilisée pour mettre des tirets.	*/
+string cmpTiret(int unsigned n)
+	{ string Emot = ""; while (Emot.length() < n) { Emot += "-"; } return Emot; }
+
+/* Fonctions d'affichage, utilisées pour placer des espaces à coté du texte.*/
+string cmpEspaceAlignGauche(string mot, int unsigned n)
+	{ string Emot = mot; if ((Emot.length() > n) && (n > 2)) { Emot = mot.substr(0,n-3) + "..."; }
+	while (Emot.length() < n) { Emot = Emot + " "; } return Emot; }
+string cmpEspaceAlignCentre(string mot, int unsigned n)
+	{ string Emot = mot; bool pos = true; if ((Emot.length() > n) && (n > 2)) { Emot = mot.substr(0,n-3) + "..."; }
+	while (Emot.length() < n) { if (pos) { Emot = Emot + " "; pos = false; }  else { Emot = " " + Emot; pos = true; } } return Emot; }
+string cmpEspaceAlignDroite(string mot, int unsigned n)
+	{ string Emot = mot; if ((Emot.length() > n) && (n > 2)) { Emot = mot.substr(0,n-3) + "..."; }
+	while (Emot.length() < n) { Emot = + " " + Emot; } return Emot; }
+
+/* Fonction de convertion, permet de changer une valeur numérique en texte pour son affichage	*/
+template<typename T>
+string chiffre2string(T c) { ostringstream oss; oss << c; return oss.str(); }
+
+/* ---------------------------------------------------------------------------- */
+\end
+
+
+/********************************************************************************/
+/****///             DECLARATION DES FONCTIONS TEMPORELLES               ///*****/
+/********************************************************************************/
+\Before everything else function:
+/* Sauvegarde de l'heure de début du calcul	*/
+	start = clock();
+\end
+
+\After everything else function:
+/* Sauvegarde de l'heure de fin du calcul	*/
+	finish = clock();
+/* Affichage du meilleur individu			*/
+	//bBest->printOn(cout);
+
+/* Affichage de l'estimation du temps de calcul*/
+	duration = (double)(finish - start) / CLOCKS_PER_SEC;
+	//cout<<"OBJECTIF\t\t:\t"<<"Atteindre 0 pts."<<endl;
+	//cout<<"MEILLEUR SCORE\t\t:\t"<<bBest->evaluate()<<" pts"<<endl;
+	printf("TEMPS D'EXECUTION\t:\t%2.1f secondes\n", duration );
+\end
+
+\At the beginning of each generation function:
+// cout<<"(DEB) FITNESS : "<<bBest->evaluate()<<endl;
+\end
+
+\At the end of each generation function:
+// cout<<"(FIN) FITNESS : "<<bBest->evaluate()<<endl;
+\end
+
+\At each generation before reduce function:
+//cout << "At each generation before replacement function called" << endl;
+\end
+/* ---------------------------------------------------------------------------- */
+
+/********************************************************************************/
+/*********///             DECLARATION DES CLASSES               ///**************/
+/********************************************************************************/
+\User classes :
+
+/* Classe représentant un cours. Un cours se compose de chaque élément ci-dessous.		*/
+ConstraintsClass
+{
+	int start			/* Début de la contrainte	*/
+	int end;			/* Fin de la contrainte		*/
+}
+/* Classe représentant une classe d'élèves.			*/
+PapersClass
+{
+	int ID;						/* Identifiant du papier 	*/
+	int IDTrack;				/* Identifiant du track		*/
+	int IDeSession;				/* Identifiant de la session*/
+	//int posSession;			/* Position dans la session */
+	int duration;				/* Durée du passage			*/
+	float timezone;				/* fuseau horaire 			*/
+
+	vector<Constraint> day1;	/* Contraintes du jour 1	*/	
+	vector<Constraint> day2;	/* Contraintes du jour 2	*/
+	vector<Constraint> day3;	/* Contraintes du jour 3	*/
+
+	tm date;					/* Date de passage 			*/
+}
+/* Classe représentant un enseignant.									*/
+SessionsClass
+{
+	int ID 						/* Identifiant de la session			*/
+	tm date 					/* Date de la session 					*/
+	Vector<Paper> papers 		/* Ensemble des papiers dans la session */
+}
+
+/* Classe représentant un génome, soit un emplois du temps complet.	*/
+GenomeClass
+{ 
+	//CoursClass cours[NBCOURS];			/* les cours				*/
+	//ClassesClass classes[NBCLASSES];		/* les classes				*/
+	//ProfsClass profs[NBPROFS];			/* les profs				*/
+	//SallesClass	salles[NBSALLES];		/* les salles				*/
+	//CreneauxClass creneaux[NBCRENEAUX];	/* les créneaux				*/
+}
+
+/*
+typedef struct{
+	int start;
+	int end;
+}Constraint;
+
+typedef struct{
+	int ID;
+	int IDTrack;
+	int IDeSession;
+	int posSession;
+	int duration;
+	float timezone;
+
+	vector<Constraint> day1;
+	vector<Constraint> day2;
+	vector<Constraint> day3;
+
+	tm date;
+}Paper;
+
+typedef struct{
+	int ID;
+	tm date;
+	vector<Paper> papers;
+}Session;
+
+*/
+
+\end
+/* -------------------------------------------------------------------------------------------- */
