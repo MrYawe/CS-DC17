@@ -6,12 +6,12 @@ Arnaud Steinmetz - Yannis Weishaupt
 Assignation de sessions/papiers à un calendrier sur les données du CS-DC15
 _______________________________________________________________*/
 
-\User declarations : 
+\User declarations :
 
 #include <math.h>
 #include <cstring>
-#include <stdio.h> 
-#include <stdlib.h> 
+#include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 /*
@@ -40,6 +40,17 @@ using namespace std;
 #define VALERR0 100000	/* Valeur de pénalité contrainte oblig	*/
 #define VALERR1 1000	/* Valeur de pénalité contrainte forte	*/
 #define VALERR2 1		/* Valeur de pénalité contrainte faible */
+
+
+/* Valeurs du fichier input */
+#define PAPER_ID 0
+#define TRACK_ID 1
+#define SESSION_ID 2
+#define DURATION 3
+#define UTC 4
+#define CONSTRAINT_1 5
+#define CONSTRAINT_2 6
+#define CONSTRAINT_3 7
 
 /********************************************************************************/
 /******///             DECLARATION DES VARIABLES GLOBALES               ///******/
@@ -76,6 +87,69 @@ string cmpEspaceAlignDroite(string mot, int unsigned n)
 /* Fonction de convertion, permet de changer une valeur numérique en texte pour son affichage	*/
 template<typename T>
 string chiffre2string(T c) { ostringstream oss; oss << c; return oss.str(); }
+
+vector<Paper> papers;
+void readPapersFile() {
+	std::string delimiter = "|";
+
+	fPaper.open("papers.txt", ios::in);
+	string line;
+	if (fPaper.is_open()) {
+		while ( getline (fPaper,line) ) {
+
+			Paper p = new Paper();
+			int i = 0;
+			size_t pos = 0;
+			std::string token;
+
+			while ((pos = s.find(delimiter)) != std::string::npos) {
+			    token = s.substr(0, pos);
+					switch ( i ) {
+		        case PAPER_ID:
+							p.ID = atoi(token);
+		          break;
+		        case TRACK_ID:
+							p.TrackID = atoi(token);
+							break;
+						case SESSION_ID:
+							p.SessionID = atoi(token);
+							break;
+						case DURATION:
+							p.duration = atoi(token);
+						case UTC:
+							p.timezone = std::stod(token); // string to float
+						case CONSTRAINT_1:
+							p.day1 = parseConstraints(token);
+						case CONSTRAINT_2:
+							p.day2 = parseConstraints(token);
+						case CONSTRAINT_3:
+							p.day3 = parseConstraints(token);
+		      }
+			    s.erase(0, pos + delimiter.length());
+					i++;
+			}
+			papers.push_back(p);
+		}
+	}
+}
+
+vector<Constraint> parseConstraints(string subject) {
+	vector<Constraint> res;
+  std::regex re("\[(\d*),(\d*)\]");
+  std::sregex_iterator next(subject.begin(), subject.end(), re);
+  std::sregex_iterator end;
+
+  while (next != end) {
+		Constraint cons = new Constraint();
+		std::smatch matches = *next;
+		cons.start = atoi(matches[0].str());
+		cons.end = atoi(matches[1].str());
+		res.push_back(cons);
+    next++;
+  }
+
+	return res;
+}
 
 /* ---------------------------------------------------------------------------- */
 \end
@@ -121,29 +195,29 @@ string chiffre2string(T c) { ostringstream oss; oss << c; return oss.str(); }
 \User classes :
 
 /* Classe représentant un cours. Un cours se compose de chaque élément ci-dessous.		*/
-ConstraintsClass
+Constraint
 {
 	int start			/* Début de la contrainte	*/
 	int end;			/* Fin de la contrainte		*/
 }
 /* Classe représentant une classe d'élèves.			*/
-PapersClass
+Paper
 {
 	int ID;						/* Identifiant du papier 	*/
-	int IDTrack;				/* Identifiant du track		*/
-	int IDeSession;				/* Identifiant de la session*/
+	int TrackID;				/* Identifiant du track		*/
+	int SessionID;				/* Identifiant de la session*/
 	//int posSession;			/* Position dans la session */
 	int duration;				/* Durée du passage			*/
-	float timezone;				/* fuseau horaire 			*/
+	double timezone;				/* fuseau horaire 			*/
 
-	vector<Constraint> day1;	/* Contraintes du jour 1	*/	
+	vector<Constraint> day1;	/* Contraintes du jour 1	*/
 	vector<Constraint> day2;	/* Contraintes du jour 2	*/
 	vector<Constraint> day3;	/* Contraintes du jour 3	*/
 
 	tm date;					/* Date de passage 			*/
 }
 /* Classe représentant un enseignant.									*/
-SessionsClass
+Session
 {
 	int ID 						/* Identifiant de la session			*/
 	tm date 					/* Date de la session 					*/
@@ -151,8 +225,8 @@ SessionsClass
 }
 
 /* Classe représentant un génome, soit un emplois du temps complet.	*/
-GenomeClass
-{ 
+Genome
+{
 	//CoursClass cours[NBCOURS];			/* les cours				*/
 	//ClassesClass classes[NBCLASSES];		/* les classes				*/
 	//ProfsClass profs[NBPROFS];			/* les profs				*/
