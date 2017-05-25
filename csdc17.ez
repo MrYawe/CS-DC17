@@ -8,29 +8,25 @@ _______________________________________________________________*/
 
 \User declarations :
 
-#include <math.h>
-#include <cstring>
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-
-/*
 #include <string>
+#include <cstring>
+
 #include <iostream>
 #include <fstream>
+
 #include <cstdio>
 #include <cstdlib>
+
 #include <vector>
-#include <stdio.h>
-#include <string.h>
 #include <algorithm>
-*/
+#include <regex>
 
 
+/*
 #define Abs(x) ((x) < 0 ? -(x) : (x))
 #define MAX(x,y) ((x)>(y)?(x):(y))
 #define MIN(x,y) ((x)<(y)?(x):(y))
-
+*/
 #define NBPAPERS 263 	/* Nombre de papers à placer */
 
 
@@ -55,6 +51,27 @@ using namespace std;
 #define CONSTRAINT_2 6
 #define CONSTRAINT_3 7
 
+/* Classe représentant un cours. Un cours se compose de chaque élément ci-dessous.		*/
+class Constraint {
+	public:int start;			/* Début de la contrainte	*/
+	public:int end;			/* Fin de la contrainte		*/
+};
+/* Classe représentant une classe d'élèves.			*/
+class Paper {
+	public:int ID;						/* Identifiant du papier 	*/
+	public:int TrackID;				/* Identifiant du track		*/
+	public:int SessionID;				/* Identifiant de la session*/
+	//int posSession;			/* Position dans la session */
+	public:int duration;				/* Durée du passage			*/
+	public:double timezone;				/* fuseau horaire 			*/
+
+	public:vector<Constraint> day1;	/* Contraintes du jour 1	*/
+	public:vector<Constraint> day2;	/* Contraintes du jour 2	*/
+	public:vector<Constraint> day3;	/* Contraintes du jour 3	*/
+
+	public:tm date;					/* Date de passage 			*/
+};
+
 /********************************************************************************/
 /******///             DECLARATION DES VARIABLES GLOBALES               ///******/
 /********************************************************************************/
@@ -62,7 +79,7 @@ using namespace std;
 float pMutPerGene = 0.5;	/* probabilité de mutation par individu	*/
 
 clock_t	start, finish;		/* Pour estimer le temps de calcul		*/
-double duration;			/* temps de calcul						*/
+double runDuration;			/* temps de calcul						*/
 
 vector<Paper> papers;		/* Liste contenant tous les papers 		*/
 
@@ -74,123 +91,80 @@ vector<Paper> papers;		/* Liste contenant tous les papers 		*/
 /******///             DECLARATION DES FONCTIONS GLOBALES               ///******/
 /********************************************************************************/
 
-/* Fonction d'affichage, utilisée pour mettre des tirets.	*/
-string cmpTiret(int unsigned n)
-	{ string Emot = ""; while (Emot.length() < n) { Emot += "-"; } return Emot; }
-
-/* Fonctions d'affichage, utilisées pour placer des espaces à coté du texte.*/
-string cmpEspaceAlignGauche(string mot, int unsigned n)
-	{ string Emot = mot; if ((Emot.length() > n) && (n > 2)) { Emot = mot.substr(0,n-3) + "..."; }
-	while (Emot.length() < n) { Emot = Emot + " "; } return Emot; }
-string cmpEspaceAlignCentre(string mot, int unsigned n)
-	{ string Emot = mot; bool pos = true; if ((Emot.length() > n) && (n > 2)) { Emot = mot.substr(0,n-3) + "..."; }
-	while (Emot.length() < n) { if (pos) { Emot = Emot + " "; pos = false; }  else { Emot = " " + Emot; pos = true; } } return Emot; }
-string cmpEspaceAlignDroite(string mot, int unsigned n)
-	{ string Emot = mot; if ((Emot.length() > n) && (n > 2)) { Emot = mot.substr(0,n-3) + "..."; }
-	while (Emot.length() < n) { Emot = + " " + Emot; } return Emot; }
-
 /* Fonction de convertion, permet de changer une valeur numérique en texte pour son affichage	*/
-template<typename T>
-string chiffre2string(T c) { ostringstream oss; oss << c; return oss.str(); }
+//template<typename T>string chiffre2string(T c) { ostringstream oss; oss << c; return oss.str(); }
 
-void readPapersFile() {
-	std::string delimiter = "|";
-
-	fPaper.open("papers.txt", ios::in);
-	string line;
-	if (fPaper.is_open()) {
-		while ( getline (fPaper,line) ) {
-
-			Paper p = new Paper();
-			int i = 0;
-			size_t pos = 0;
-			std::string token;
-
-			while ((pos = s.find(delimiter)) != std::string::npos) {
-			    token = s.substr(0, pos);
-					switch ( i ) {
-		        case PAPER_ID:
-							p.ID = atoi(token);
-		          break;
-		        case TRACK_ID:
-							p.TrackID = atoi(token);
-							break;
-						case SESSION_ID:
-							p.SessionID = atoi(token);
-							break;
-						case DURATION:
-							p.duration = atoi(token);
-						case UTC:
-							p.timezone = std::stod(token); // string to float
-						case CONSTRAINT_1:
-							p.day1 = parseConstraints(token);
-						case CONSTRAINT_2:
-							p.day2 = parseConstraints(token);
-						case CONSTRAINT_3:
-							p.day3 = parseConstraints(token);
-		      }
-			    s.erase(0, pos + delimiter.length());
-					i++;
-			}
-			papers.push_back(p);
-		}
-	}
-}
 
 vector<Constraint> parseConstraints(string subject) {
-	vector<Constraint> res;
-  std::regex re("\[(\d*),(\d*)\]");
-  std::sregex_iterator next(subject.begin(), subject.end(), re);
-  std::sregex_iterator end;
+    vector<Constraint> res;
+    std::regex re("\\[(\\d*),(\\d*)\\]");
+    std::sregex_iterator next(subject.begin(), subject.end(), re);
+    std::sregex_iterator end;
 
-  while (next != end) {
-		Constraint cons = new Constraint();
-		std::smatch matches = *next;
-		cons.start = atoi(matches[0].str());
-		cons.end = atoi(matches[1].str());
-		res.push_back(cons);
-    next++;
-  }
+    while (next != end) {
+        Constraint* cons = new Constraint();
+        std::smatch matches = *next;
+        cons->start = stoi(matches[1].str());
+        cons->end = stoi(matches[2].str());
+        res.push_back(*cons);
+        next++;
+    }
 
-	return res;
+    return res;
+}
+
+void readPapersFile() {
+    std::string delimiter = "|";
+    ifstream fPaper;
+    fPaper.open("./papers.txt", ios::in);
+    string line;
+    if (fPaper.is_open()) {
+        while ( getline (fPaper,line) ) {
+
+            Paper* p = new Paper();
+            int i = 0;
+            size_t pos = 0;
+            std::string token;
+
+            while ((pos = line.find(delimiter)) != std::string::npos) {
+                token = line.substr(0, pos);
+                switch ( i ) {
+                    case PAPER_ID:
+                        p->ID = stoi(token);
+                        break;
+                    case TRACK_ID:
+                        p->TrackID = stoi(token);
+                        break;
+                    case SESSION_ID:
+                        p->SessionID = stoi(token);
+                        break;
+                    case DURATION:
+                        p->duration = stoi(token);
+                    case UTC:
+                        //p->timezone = std::stod(token); // string to float
+                    case CONSTRAINT_1:
+                        p->day1 = parseConstraints(token);
+                    case CONSTRAINT_2:
+                        p->day2 = parseConstraints(token);
+                    case CONSTRAINT_3:
+                        p->day3 = parseConstraints(token);
+                }
+                line.erase(0, pos + delimiter.length());
+                i++;
+            }
+            papers.push_back(*p);
+        }
+    }
 }
 
 /* ---------------------------------------------------------------------------- */
 \end
 
-
-/********************************************************************************/
-/****///             DECLARATION DES FONCTIONS TEMPORELLES               ///*****/
-/********************************************************************************/
-\Before everything else function:
-/* Sauvegarde de l'heure de début du calcul	*/
-	start = clock();
+\User CUDA:
+//Transfert some variables to GPU here (cudaMalloc, MemCpy)
 \end
 
-\After everything else function:
-/* Sauvegarde de l'heure de fin du calcul	*/
-	finish = clock();
-/* Affichage du meilleur individu			*/
-	//bBest->printOn(cout);
 
-/* Affichage de l'estimation du temps de calcul*/
-	duration = (double)(finish - start) / CLOCKS_PER_SEC;
-	//cout<<"OBJECTIF\t\t:\t"<<"Atteindre 0 pts."<<endl;
-	//cout<<"MEILLEUR SCORE\t\t:\t"<<bBest->evaluate()<<" pts"<<endl;
-	printf("TEMPS D'EXECUTION\t:\t%2.1f secondes\n", duration );
-\end
-
-\At the beginning of each generation function:
-// cout<<"(DEB) FITNESS : "<<bBest->evaluate()<<endl;
-\end
-
-\At the end of each generation function:
-// cout<<"(FIN) FITNESS : "<<bBest->evaluate()<<endl;
-\end
-
-\At each generation before reduce function:
-//cout << "At each generation before replacement function called" << endl;
-\end
 /* ---------------------------------------------------------------------------- */
 
 /********************************************************************************/
@@ -198,226 +172,69 @@ vector<Constraint> parseConstraints(string subject) {
 /********************************************************************************/
 \User classes :
 
-/* Classe représentant un cours. Un cours se compose de chaque élément ci-dessous.		*/
-Constraint
-{
-	int start			/* Début de la contrainte	*/
-	int end;			/* Fin de la contrainte		*/
-}
-/* Classe représentant une classe d'élèves.			*/
-Paper
-{
-	int ID;						/* Identifiant du papier 	*/
-	int TrackID;				/* Identifiant du track		*/
-	int SessionID;				/* Identifiant de la session*/
-	//int posSession;			/* Position dans la session */
-	int duration;				/* Durée du passage			*/
-	double timezone;				/* fuseau horaire 			*/
 
-	vector<Constraint> day1;	/* Contraintes du jour 1	*/
-	vector<Constraint> day2;	/* Contraintes du jour 2	*/
-	vector<Constraint> day3;	/* Contraintes du jour 3	*/
-
-	tm date;					/* Date de passage 			*/
-}
-/* Classe représentant un enseignant.									*/
-Session
-{
-	int ID 						/* Identifiant de la session			*/
-	tm date 					/* Date de la session 					*/
-	Vector<Paper> papers 		/* Ensemble des papiers dans la session */
+GenomeClass {
+	int papersA[NBPAPERS];
+	int scores[NBPAPERS];
 }
 
-/* Classe représentant un génome, soit un emplois du temps complet.	*/
-GenomeClass
-{ 
-	int papers[NBPAPERS];	/* tableau contenant l'identifiant des papers 	*/
-	//int dates[NBPAPERS];	/* tableau contenant les dates attribuées 		*/
-	int scores[NBPAPERS];	/* tableau contenant les scores attribués		*/
-}
-
-/*
-typedef struct{
-	int start;
-	int end;
-}Constraint;
-
-typedef struct{
-	int ID;
-	int IDTrack;
-	int IDeSession;
-	int posSession;
-	int duration;
-	float timezone;
-
-	vector<Constraint> day1;
-	vector<Constraint> day2;
-	vector<Constraint> day3;
-
-	tm date;
-}Paper;
-
-typedef struct{
-	int ID;
-	tm date;
-	vector<Paper> papers;
-}Session;
-
-*/
 
 \end
 
+\Before everything else function:
+	start = clock();
+	readPapersFile();
+\end
 
-/************************************************************************************************/
-/********************///                     AFFICHAGE                     ///*******************/
-/************************************************************************************************/
+\After everything else function:
+	finish = clock();
+
+	runDuration = (double)(finish - start) / CLOCKS_PER_SEC;
+	printf("TEMPS D'EXECUTION\t:\t%2.1f secondes\n", runDuration );
+
+	//printf("TEMPS D'EXECUTION\t:\t%2.1f secondes\n", papers.size());
+\end
+
+
+\At the beginning of each generation function:
+//cout << "At the beginning of each generation function called" << endl;
+\end
+
+\At the end of each generation function:
+//cout << "At the end of each generation function called" << endl;
+\end
+
+\At each generation before reduce function:
+//cout << "At each generation before replacement function called" << endl;
+\end
 
 \GenomeClass::display:
-/* -------------------------------------------------------------------------------------------- */
-/* DECLARATION DES VARIABLES																	*/
-/* -------------------------------------------------------------------------------------------- */
-
-
-
-/* -------------------------------------------------------------------------------------------- */
-/* AFFICHAGE DE L'EDT																			*/
-/* -------------------------------------------------------------------------------------------- */
-
-
-/* -------------------------------------------------------------------------------------------- */
-/* AFFICHAGE DE L'EVALUATION 																					*/
-/* -------------------------------------------------------------------------------------------- */
-
-/* -------------------------------------------------------------------------------------------- */
 \end
 
-
-
-/************************************************************************************************/
-/********************///                  INITIALISATION                   ///*******************/
-/************************************************************************************************/
-
-\GenomeClass::initialiser :
-
+\GenomeClass::initialiser : // "initializer" is also accepted
 
 \end
-/* -------------------------------------------------------------------------------------------- */
 
-
-/************************************************************************************************/
-/********************///                     CROSS-OVER                    ///*******************/
-/************************************************************************************************/
-
-\GenomeClass::crossover :
-
-/*
-float	limite			= 0.5;
-
-for (int i=0; i<NBCOURS; i++)
-{
-	if((float)random(0.,1.) < limite)
-	{ child.cours[i].creneau = parent2.cours[i].creneau; }
-}*/
+\GenomeClass::crossover : 
+  // must create "child" out of "parent1" and "parent2"
 
 \end
-/* -------------------------------------------------------------------------------------------- */
 
-
-/************************************************************************************************/
-/********************///                      MUTATION                     ///*******************/
-/************************************************************************************************/
-
-\GenomeClass::mutator : // retourne le nombre de mutations
-
-int	nb = 0;
-
-/* -------------------------------------------------------------------------------------------- */
-/* EVALUATION DES CRENEAUX									*/
-/* -------------------------------------------------------------------------------------------- */
-
-
-return nb;
+\GenomeClass::mutator : // Must return the number of mutations
 
 \end
-/* -------------------------------------------------------------------------------------------- */
 
-
-/************************************************************************************************/
-/********************///                     EVALUATION                    ///*******************/
-/************************************************************************************************/
-
-\GenomeClass::evaluator : // retourne le score
-
-/* Méthode réutilisée dans l'affichage (voir plus haut dans le code) et y est commentée		*/
-
-/* -------------------------------------------------------------------------------------------- */
-/* DECLARATION DES VARIABLES																	*/
-/* -------------------------------------------------------------------------------------------- */
-
-
-/* -------------------------------------------------------------------------------------------- */
-/* EVALUATION DE L'AFFECTATION (
-	on pourrait séparer :
-	- évaluation speaker (contrainte)
-	- évaluation session (cassure)
-	- 																							*/
-/* -------------------------------------------------------------------------------------------- */
-
-
-
-/* -------------------------------------------------------------------------------------------- */
-/* RETOUR DU SCORE										*/
-/* -------------------------------------------------------------------------------------------- */
-
-//score = totalR0 * VALERR0 + totalR1 * VALERR1 + totalR2 * VALERR2;
-//return score;
+\GenomeClass::evaluator : // Returns the score as a real value
 
 \end
-/* -------------------------------------------------------------------------------------------- */
-
-
-/************************************************************************************************/
-/********************///                     PARAMETRAGE                    ///******************/
-/************************************************************************************************/
 
 \User Makefile options: 
-CPPFLAGS+=
+CPPFLAGS+="-std=c++11"
 \end
 
-\Default run parameters :       		// Please let the parameters appear in this order
-
-  Number of generations :	100	     		// NB_GEN
-  Time limit:			10 			// In seconds, 0 to deactivate
-  Population size :		100			// POP_SIZE
-  Offspring size :		40%			// 40% 
-  Mutation probability :	1       		// MUT_PROB
-  Crossover probability :	1	      		// XOVER_PROB
-  Evaluator goal :		Minimise      		// Maximise
-  Selection operator:		Tournament 2.0
-  Surviving parents:		90%			// percentage or absolute  
-  Surviving offspring:		90%
-  Reduce parents operator:	Tournament 2
-  Reduce offspring operator:	Tournament 2
-  Final reduce operator:	Tournament 2
-
-  Elitism:			Strong			//Weak or Strong
-  Elite:			1
-  Print stats:			true			//Default: 1
-  Generate csv stats file:	false			
-  Generate gnuplot script:	false
-  Generate R script:		false
-  Plot stats:			false			//Default: 0
-
-  Remote island model:		false
-  IP file:			ip.txt 			//File containing all the remote island's IP
-  Migration probability:	0
-
-  Save population:		true
-  Start from file:		false
-
-
-  /** option des gens de 2015 
-    Number of generations : 300    // NB_GEN
+/*mutation et crossover à 0 pour seqfault*/
+\Default run parameters :        // Please let the parameters appear in this order
+  Number of generations : 300    // NB_GEN
   Time limit: 0 			           // In seconds, 0 to deactivate
   Population size : 64		   //POP_SIZE
   Offspring size : 64// or a xx%
@@ -439,14 +256,12 @@ CPPFLAGS+=
   Generate R script:false
   Plot stats:true				         // Default: 0
 
-  Remote island model: true
-  IP file: ip.txt 			         // List of IP:PORT of islands to send individuals to
+  //Remote island model: true
+  //IP file: ip.txt 			         // List of IP:PORT of islands to send individuals to
   Migration probability: 0.3    // Probability of sending an individual per generation
-  Server port : 2929
+  //Server port : 2929
 
   Save population: false
-  Start from file:false
-  */
-  
+  //Start from file:false
 \end
-/* -------------------------------------------------------------------------------------------- */ 
+

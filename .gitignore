@@ -33,3 +33,10 @@
 
 # Exclude cpp
 *.cpp
+Makefile
+csdc17
+*.csv
+*.dat
+*.mak
+*.prm
+*.hpp
