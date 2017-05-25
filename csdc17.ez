@@ -78,12 +78,13 @@ class Paper {
 /******///             DECLARATION DES VARIABLES GLOBALES               ///******/
 /********************************************************************************/
 
-float pMutPerGene = 0.5;	/* probabilité de mutation par individu	*/
+float pMutPerGene = 0.5;		/* probabilité de mutation par individu	*/
 
-clock_t	start, finish;		/* Pour estimer le temps de calcul		*/
-double runDuration;			/* temps de calcul						*/
+clock_t	start, finish;			/* Pour estimer le temps de calcul		*/
+double runDuration;				/* temps de calcul						*/
 
-vector<Paper> papers;		/* Liste contenant tous les papers 		*/
+vector<Constraint> eventDates; 	/* Dates de l'événement 				*/
+vector<Paper> papers;			/* Liste contenant tous les papers 		*/
 
 /* ---------------------------------------------------------------------------- */
 \end
@@ -96,6 +97,38 @@ vector<Paper> papers;		/* Liste contenant tous les papers 		*/
 /* Fonction de convertion, permet de changer une valeur numérique en texte pour son affichage	*/
 //template<typename T>string chiffre2string(T c) { ostringstream oss; oss << c; return oss.str(); }
 
+void setEventDates() {
+
+	Constraint* cons1 = new Constraint();
+	Constraint* cons2 = new Constraint();
+
+	struct std::tm tm1_debut;
+	struct std::tm tm1_fin;
+	struct std::tm tm2_debut;
+	struct std::tm tm2_fin;
+
+	string jour1_debut 	= "2015-09-30 06:00:00";
+	string jour1_fin 	= "2015-09-30 23:59:59";
+	string jour2_debut 	= "2015-10-01 00:00:00";
+	string jour2_fin 	= "2015-10-01 23:59:59";
+
+
+    if (strptime(jour1_debut.c_str(), "%F %T", &tm1_debut)){
+    	cons1->start=tm1_debut;
+    } 
+    if (strptime(jour1_fin.c_str(), "%F %T", &tm1_fin)){
+    	cons1->end=tm1_fin;
+    } 
+    if (strptime(jour2_debut.c_str(), "%F %T", &tm2_debut)){
+    	cons2->start=tm2_debut;
+    } 
+    if (strptime(jour2_fin.c_str(), "%F %T", &tm2_fin)){
+    	cons2->end=tm2_fin;
+    } 
+
+    eventDates.push_back(*cons1);
+    eventDates.push_back(*cons2);
+}
 
 vector<Constraint> parseConstraints(string subject) {
     vector<Constraint> res;
@@ -152,14 +185,19 @@ void readPapersFile() {
                         break;
                     case DURATION:
                         p->duration = stoi(token);
+                        break;
                     case UTC:
                         //p->timezone = std::stod(token); // string to float
+                    	break;
                     case CONSTRAINT_1:
                         p->day1 = parseConstraints(token);
+                        break;
                     case CONSTRAINT_2:
                         p->day2 = parseConstraints(token);
+                        break;
                     case CONSTRAINT_3:
                         p->day3 = parseConstraints(token);
+                        break;
                 }
                 line.erase(0, pos + delimiter.length());
                 i++;
@@ -170,15 +208,63 @@ void readPapersFile() {
 }
 
 
-void affPapers(Paper p) {
-    std::cout << "ID :" << p.ID << "\n";
-    std::cout << "TrackID :" << p.TrackID << "\n";
-    std::cout << "SessionID :" << p.SessionID << "\n";
-    std::cout << "duration :" << p.duration << "\n";
 
-    //std::cout << "day1:" << p.day1 << "\n";
-    //std::cout << "day2 :" << p.day2 << "\n";
-    //std::cout << "day3 :" << p.day3 << "\n";
+void displayConstraint(Constraint c, int boolFullDate) {
+	if(boolFullDate) {
+		cout << c.start.tm_mday << "-" << c.start.tm_mon << "-" << c.start.tm_year;
+	}
+	cout << "    " << c.start.tm_hour << "h" << c.start.tm_min << " à " << c.end.tm_hour << "h" << c.end.tm_min << endl;
+}
+
+void displayEventDates() {
+	cout << "Dates de l'événement :" << endl;
+	for(unsigned int i = 0; i<eventDates.size();i++){
+		cout << "jour " << i << ": "; 
+		displayConstraint(eventDates[i], 1);
+	}
+}
+
+void displayPapers(Paper p) {
+    cout << "ID :" << p.ID << endl;
+    cout << "TrackID :" << p.TrackID << endl;
+    cout << "SessionID :" << p.SessionID << endl;
+    cout << "duration :" << p.duration << endl;
+
+    cout << "Disponibilités :" << endl;
+    //Affichage des disponibilités
+    cout << "  jour 1:" << endl;
+
+    if(p.day1.size()!=0){
+    	for(unsigned int i=0; i<p.day1.size(); i++)
+		{
+			displayConstraint(p.day1[i], 0);
+		}
+    } else {
+		cout << "    Pas de contraintes" << endl;
+    }
+    
+	cout << "  jour 2:" << endl;
+
+    if(p.day2.size()!=0){
+		for(unsigned int i=0; i<p.day2.size(); i++)
+		{
+			displayConstraint(p.day2[i], 0);
+		}
+	} else {
+		cout << "    Pas de contraintes" << endl;
+	}
+
+	cout << "  jour 3:" << endl;
+    if(p.day3.size()!=0){
+		for(unsigned int i=0; i<p.day3.size(); i++)
+		{
+			displayConstraint(p.day3[i], 0);
+		}
+	} else {
+		cout << "    Pas de contraintes" << endl;
+	}
+
+    
 }
 
 /* ---------------------------------------------------------------------------- */
@@ -198,7 +284,7 @@ void affPapers(Paper p) {
 
 
 GenomeClass {
-	int papersA[NBPAPERS];
+	int papersID[NBPAPERS];
 }
 
 
@@ -206,6 +292,8 @@ GenomeClass {
 
 \Before everything else function:
 	start = clock();
+
+    setEventDates();
 	readPapersFile();
 \end
 
@@ -217,9 +305,13 @@ GenomeClass {
 
 	std::cout << "Nb papers :" << papers.size() << "\n";
 
-	affPapers(papers[0]);
+	displayPapers(papers[0]);
 
-	cout << papers[0].day1[0].start.tm_hour << endl;
+	displayEventDates();
+
+
+
+	
 \end
 
 
