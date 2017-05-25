@@ -153,16 +153,16 @@ vector<Constraint> parseConstraints(string subject) {
         Constraint* cons = new Constraint();
         std::smatch matches = *next;
 
-				struct std::tm tm1;
-				struct std::tm tm2;
-				std::istringstream s1(matches[1].str());
-				std::istringstream s2(matches[2].str());
-				s1 >> std::get_time(&tm1, "%H:%M"); // or just %T in this case
-				s2 >> std::get_time(&tm2, "%H:%M"); // or just %T in this case
-				//cons->start = mktime(&tm1);
-        		//cons->end = mktime(&tm2);
-				cons->start = tm1;
-				cons->end = tm2;
+		struct std::tm tm1;
+		struct std::tm tm2;
+		std::istringstream s1(matches[1].str());
+		std::istringstream s2(matches[2].str());
+		s1 >> std::get_time(&tm1, "%H:%M"); // or just %T in this case
+		s2 >> std::get_time(&tm2, "%H:%M"); // or just %T in this case
+		//cons->start = mktime(&tm1);
+		//cons->end = mktime(&tm2);
+		cons->start = tm1;
+		cons->end = tm2;
 
         res.push_back(*cons);
         next++;
@@ -220,19 +220,15 @@ void readPapersFile() {
     }
 }
 
-
-
 void displayConstraint(Constraint c) {
 	cout << "    " << c.start.tm_hour << "h" << c.start.tm_min << " à " << c.end.tm_hour << "h" << c.end.tm_min << endl;
 }
-
 
 void displayEventDate() {
 	cout << "Date de l'événement : Du ";
 
 	char mbstr[100];
 	char mbstr2[100];
-
 
 	if (std::strftime(mbstr, sizeof(mbstr), "%F %T", &(eventDate->start))){
 		std::cout << mbstr << " au ";
@@ -378,8 +374,14 @@ GenomeClass {
 \end
 
 \GenomeClass::crossover :
-  // must create "child" out of "parent1" and "parent2"
+	// must create "child" out of "parent1" and "parent2"
+	float limit = 0.5;
 
+	for (unsigned int i=0; i<NBPAPERS; i++)
+	{
+		if((float)random(0.,1.) < limit)
+		{ child.match[i].date = parent2.match[i].date; }
+	}
 \end
 
 \GenomeClass::mutator : // Must return the number of mutations
