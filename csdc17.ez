@@ -20,6 +20,8 @@ _______________________________________________________________*/
 #include <vector>
 #include <algorithm>
 #include <regex>
+#include <iomanip>      // std::get_time
+#include <ctime>        // struct std::tm
 
 
 /*
@@ -53,8 +55,8 @@ using namespace std;
 
 /* Classe représentant un cours. Un cours se compose de chaque élément ci-dessous.		*/
 class Constraint {
-	public:int start;			/* Début de la contrainte	*/
-	public:int end;			/* Fin de la contrainte		*/
+	public:tm start;			/* Début de la contrainte	*/
+	public:tm end;			/* Fin de la contrainte		*/
 };
 /* Classe représentant une classe d'élèves.			*/
 class Paper {
@@ -97,15 +99,25 @@ vector<Paper> papers;		/* Liste contenant tous les papers 		*/
 
 vector<Constraint> parseConstraints(string subject) {
     vector<Constraint> res;
-    std::regex re("\\[(\\d*),(\\d*)\\]");
+    std::regex re("\\[(\\d*:\\d*),(\\d*:\\d*)\\]");
     std::sregex_iterator next(subject.begin(), subject.end(), re);
     std::sregex_iterator end;
 
     while (next != end) {
         Constraint* cons = new Constraint();
         std::smatch matches = *next;
-        cons->start = stoi(matches[1].str());
-        cons->end = stoi(matches[2].str());
+
+				struct std::tm tm1;
+				struct std::tm tm2;
+				std::istringstream s1(matches[1].str());
+				std::istringstream s2(matches[2].str());
+				s1 >> std::get_time(&tm1, "%H:%M"); // or just %T in this case
+				s2 >> std::get_time(&tm2, "%H:%M"); // or just %T in this case
+				//cons->start = mktime(&tm1);
+        //cons->end = mktime(&tm2);
+				cons->start = tm1;
+				cons->end = tm2;
+
         res.push_back(*cons);
         next++;
     }
@@ -192,6 +204,8 @@ GenomeClass {
 	runDuration = (double)(finish - start) / CLOCKS_PER_SEC;
 	printf("TEMPS D'EXECUTION\t:\t%2.1f secondes\n", runDuration );
 
+	cout << papers[0].ID << endl;
+	cout << papers[0].day1[0].start.tm_hour << endl;
 	//printf("TEMPS D'EXECUTION\t:\t%2.1f secondes\n", papers.size());
 \end
 
@@ -215,7 +229,7 @@ GenomeClass {
 
 \end
 
-\GenomeClass::crossover : 
+\GenomeClass::crossover :
   // must create "child" out of "parent1" and "parent2"
 
 \end
@@ -228,7 +242,7 @@ GenomeClass {
 
 \end
 
-\User Makefile options: 
+\User Makefile options:
 CPPFLAGS+="-std=c++11"
 \end
 
@@ -242,7 +256,7 @@ CPPFLAGS+="-std=c++11"
   Crossover probability : 1      // XOVER_PROB
   Evaluator goal : maximise      // maximise
   Selection operator: Tournament 0.6
-  Surviving parents: 100%        // Percentage or absolute  
+  Surviving parents: 100%        // Percentage or absolute
   Surviving offspring: 100%      // Percentage or absolute  d
   Reduce parents operator: Tournament 2
   Reduce offspring operator: Tournament 2
@@ -251,7 +265,7 @@ CPPFLAGS+="-std=c++11"
   Elitism: strong			           // Weak or Strong
   Elite: 1
   Print stats: true				       // Default: 1
-  Generate csv stats file:true			
+  Generate csv stats file:true
   Generate gnuplot script:false
   Generate R script:false
   Plot stats:true				         // Default: 0
@@ -264,4 +278,3 @@ CPPFLAGS+="-std=c++11"
   Save population: false
   //Start from file:false
 \end
-
