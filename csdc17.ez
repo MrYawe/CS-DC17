@@ -39,9 +39,13 @@ using namespace std;
 /* ---------------------------------------------------------------------------- */
 /* Valeurs permettant la sélection par la fitness des individus :				*/
 
-#define VALERR0 100000	/* Valeur de pénalité contrainte oblig	*/
-#define VALERR1 1000	/* Valeur de pénalité contrainte forte	*/
-#define VALERR2 1		/* Valeur de pénalité contrainte faible */
+#define VALERR0 100000	/* Valeur de pénalité contrainte oblig : eSession superposés avec track15 et papers de même eSession superposé*/
+#define VALERR1 1000	/* Valeur de pénalité contrainte forte : papers de même eSession éloigné */
+
+#define VALBON0 1		/* Valeur de bonus faible : éloignement entre eSession*/
+#define VALBON1 100		/* Valeur de bonus moyen : respect créneau*/
+
+
 
 
 /* Valeurs du fichier input */
@@ -57,14 +61,14 @@ using namespace std;
 /* Classe représentant un cours. Un cours se compose de chaque élément ci-dessous.		*/
 class Constraint {
 	public:tm start;			/* Début de la contrainte	*/
-	public:tm end;			/* Fin de la contrainte		*/
+	public:tm end;				/* Fin de la contrainte		*/
 };
 /* Classe représentant une classe d'élèves.			*/
 class Paper {
 	public:int ID;						/* Identifiant du papier 	*/
-	public:int TrackID;				/* Identifiant du track		*/
+	public:int TrackID;					/* Identifiant du track		*/
 	public:int SessionID;				/* Identifiant de la session*/
-	//int posSession;			/* Position dans la session */
+	//int posSession;					/* Position dans la session */
 	public:int duration;				/* Durée du passage			*/
 	public:double timezone;				/* fuseau horaire 			*/
 
@@ -132,10 +136,41 @@ void setEventDates() {
     eventDates.push_back(*cons1);
     eventDates.push_back(*cons2);
 }*/
+void displayConstraint(Constraint c) {
+	cout << "    " << c.start.tm_hour << "h" << c.start.tm_min << " à " << c.end.tm_hour << "h" << c.end.tm_min << endl;
+}
 
+void displaytm(tm date){
+	char mbstr[100];
+	if (std::strftime(mbstr, sizeof(mbstr), "%F %T", &date)){
+		std::cout << mbstr << endl;
+	}
+}
+
+void displaytmP(tm* date){
+	char mbstr[100];
+	if (std::strftime(mbstr, sizeof(mbstr), "%F %T", date)){
+		std::cout << mbstr << endl;
+	}
+}
+
+void displayEventDate() {
+	cout << "Date de l'événement : Du ";
+
+	char mbstr[100];
+	char mbstr2[100];
+
+	if (std::strftime(mbstr, sizeof(mbstr), "%F %T", &(eventDate->start))){
+		std::cout << mbstr << " au ";
+	}
+	if (std::strftime(mbstr2, sizeof(mbstr2), "%F %T", &(eventDate->end)))
+	{
+		std::cout << mbstr2 << endl;
+	}
+}
 void setEventDate() {
 	string jour_debut 	= "2015-09-30 06:00:00";
-	string jour_fin 	= "2015-09-30 23:59:59";
+	string jour_fin 	= "2015-10-01 23:59:59";
 
 	eventDate = new Constraint();
 
@@ -143,7 +178,7 @@ void setEventDate() {
 	strptime(jour_fin.c_str(), "%F %T", &(eventDate->end));
 }
 
-vector<Constraint> parseConstraints(string subject) {
+vector<Constraint> parseConstraints(string subject, int day) {
     vector<Constraint> res;
     std::regex re("\\[(\\d*:\\d*),(\\d*:\\d*)\\]");
     std::sregex_iterator next(subject.begin(), subject.end(), re);
@@ -161,8 +196,33 @@ vector<Constraint> parseConstraints(string subject) {
 		s2 >> std::get_time(&tm2, "%H:%M"); // or just %T in this case
 		//cons->start = mktime(&tm1);
 		//cons->end = mktime(&tm2);
+		if(!day) { //TODO TEMPORARY BECAUSE ONLY 2 DAYS
+			tm1.tm_year = eventDate->start.tm_year;
+			tm1.tm_mon = eventDate->start.tm_mon;
+			tm1.tm_mday = eventDate->start.tm_mday;
+
+			tm2.tm_year = eventDate->start.tm_year;
+			tm2.tm_mon = eventDate->start.tm_mon;
+			tm2.tm_mday = eventDate->start.tm_mday;
+		} else {
+			tm1.tm_year = eventDate->end.tm_year;
+			tm1.tm_mon = eventDate->end.tm_mon;
+			tm1.tm_mday = eventDate->end.tm_mday;
+
+			tm2.tm_year = eventDate->end.tm_year;
+			tm2.tm_mon = eventDate->end.tm_mon;
+			tm2.tm_mday = eventDate->end.tm_mday;
+		}
+		tm1.tm_sec=0;
+		tm2.tm_sec=0;
+
 		cons->start = tm1;
 		cons->end = tm2;
+
+		//cout << "jour " << day << " " << endl;
+		//cout << matches[2].str() << endl;
+		//displaytm(cons->start);
+		//displaytm(cons->end);
 
         res.push_back(*cons);
         next++;
@@ -203,13 +263,13 @@ void readPapersFile() {
                         //p->timezone = std::stod(token); // string to float
                     	break;
                     case CONSTRAINT_1:
-                        p->day1 = parseConstraints(token);
+                        p->day1 = parseConstraints(token, 0);
                         break;
                     case CONSTRAINT_2:
-                        p->day2 = parseConstraints(token);
+                        p->day2 = parseConstraints(token, 1);
                         break;
                     case CONSTRAINT_3:
-                        p->day3 = parseConstraints(token);
+                        p->day3 = parseConstraints(token, 2);
                         break;
                 }
                 line.erase(0, pos + delimiter.length());
@@ -220,24 +280,7 @@ void readPapersFile() {
     }
 }
 
-void displayConstraint(Constraint c) {
-	cout << "    " << c.start.tm_hour << "h" << c.start.tm_min << " à " << c.end.tm_hour << "h" << c.end.tm_min << endl;
-}
 
-void displayEventDate() {
-	cout << "Date de l'événement : Du ";
-
-	char mbstr[100];
-	char mbstr2[100];
-
-	if (std::strftime(mbstr, sizeof(mbstr), "%F %T", &(eventDate->start))){
-		std::cout << mbstr << " au ";
-	}
-	if (std::strftime(mbstr2, sizeof(mbstr2), "%F %T", &(eventDate->end)))
-	{
-		std::cout << mbstr2 << endl;
-	}
-}
 
 
 /*void displayEventDates() {
@@ -291,6 +334,110 @@ void displayPapers(Paper p) {
 
 }
 
+/*
+	int min;
+	int hour;
+	int day;
+	int mon;
+	int year;
+*/
+
+int convertDateToMinValue(Date d){
+	return (d.year * 365 + d.mon * 31 + d.day * 24 + d.hour * 60 + d.min); 
+}
+
+/*int dateOverlappingScore(Date d1, Date d2, int dur1, int dur2) {
+	int res = 0;
+
+	tm tm1;
+	tm1.tm_year=	d1.year-1900;
+	tm1.tm_mon=		d1.mon;
+	tm1.tm_mday=	d1.day;
+	tm1.tm_hour=	d1.hour;
+	tm1.tm_min=		d1.min;
+	tm1.tm_sec=		32;
+	tm tm2; 
+	tm2.tm_year=	d2.year-1900;
+	tm2.tm_mon=		d2.mon;
+	tm2.tm_mday=	d2.day;
+	tm2.tm_hour=	d2.hour;
+	tm2.tm_sec=		0;
+
+	tm* tm1_end = new tm(tm1);
+	displaytm(tm1);
+	displaytm(*tm1_end);
+
+	time_t sec1 = mktime(&tm1);
+	time_t sec1_end = mktime(tm1_end)+dur1*60;
+
+	cout << "debut :" << sec1 << endl;
+	cout << "fin :" << sec1_end << endl;
+
+	cout << "difference : " << difftime(sec1,sec1_end) << endl;
+
+	return res;
+}*/
+
+int dateOverlappingSeconds(Date d1, Date d2, int dur1, int dur2) {
+	//A changer selon l'initialisation
+	tm tm1;
+	tm1.tm_year=	d1.year;
+	tm1.tm_mon=		d1.mon;
+	tm1.tm_mday=	d1.day;
+	tm1.tm_hour=	d1.hour;
+	tm1.tm_min=		d1.min;
+	tm1.tm_sec=		0;
+	tm tm2;
+	tm2.tm_year=	d2.year;
+	tm2.tm_mon=		d2.mon;
+	tm2.tm_mday=	d2.day;
+	tm2.tm_hour=	d2.hour;
+	tm2.tm_min=		d2.min;
+	tm2.tm_sec=		0;
+
+	/*cout << "dates" << endl;
+	displaytm(tm1);
+	displaytm(tm2);
+	cout << "_____" << endl;*/
+
+	//tm* tm1_end = new tm(tm1);
+
+	time_t date1_start = mktime(&tm1);
+	time_t date1_end = mktime(&tm1)+dur1*60;
+
+	time_t date2_start = mktime(&tm2);
+	time_t date2_end = mktime(&tm2)+dur2*60;
+
+	time_t later;
+	time_t early;
+
+	if(difftime(date1_start, date2_start)>0) {
+		later=date1_start;
+		//cout << "date 1 commence plus tard" << endl;
+	} else {
+		later=date2_start;
+		//cout << "date 2 commence plus tard" << endl;
+	}
+	if(difftime(date1_end,date2_end)<0) {
+		early=date1_end;
+		//cout << "date 1 fini plus tôt" << endl;
+	} else {
+		early=date2_end;
+		//cout << "date 2 fini plus tôt" << endl;
+	}
+	int score = (early-later);
+	if(score<0) {
+		score=0;
+	}
+
+	/*cout << "dates" << endl;
+	displaytm(tm1);
+	displaytm(tm2);
+	cout << "overlapping score seconds: " << score/3600 << endl;
+	cout << "_____" << endl;*/
+	return score;
+}
+
 /* ---------------------------------------------------------------------------- */
 \end
 
@@ -314,7 +461,7 @@ Date {
 }
 
 Match {
-  int paperID;
+	int paperID;
 	Date date;
 }
 
@@ -325,6 +472,28 @@ GenomeClass {
 
 \Before everything else function:
 	start = clock();
+
+	cout << endl;
+
+
+	//vector<Constraint> value = papers[0].day1;
+
+	cout << endl;
+
+
+	//tm start = value.start;
+	
+	cout << endl;
+
+	//cout << "test:"<< start.tm_hour << endl;
+	//displayConstraint(value);
+	//cout << value << endl;
+
+	/*for(unsigned int i = 0;i<NB_PAPERS;i++) {
+		for (unsigned int j = 0;j<papers[i].day1.size();j++) {
+			cout << "start paper " << i << "jour " << j << " : "<< &(papers[i].day1[j].start) << endl;
+		}
+	}*/
 
     setEventDate();
 	readPapersFile();
@@ -342,9 +511,28 @@ GenomeClass {
 
 	displayEventDate();
 
+/*
+	Date d1;
+	Date d2;
 
+	d1.year	=	2015;
+	d1.mon =	4;
+	d1.day =	3;
+	d1.hour =	22;
+	d1.min =	15;
 
+	d2.year	=	2015;
+	d2.mon =	4;
+	d2.day =	3;
+	d2.hour =	10;
+	d2.min =	00;
 
+	int dur1 =	30;
+	int dur2 =  60;
+
+	int test = dateOverlappingSeconds(d1,d2,dur1,dur2);
+
+	cout << "check overlap : "<< test << endl;*/
 \end
 
 
@@ -363,15 +551,20 @@ GenomeClass {
 \GenomeClass::display:
 \end
 
+//PRISE EN COMPTE DU MOIS/ANNEE
 \GenomeClass::initialiser : // "initializer" is also accepted
 	for(unsigned int i = 0; i < papers.size(); i++) {
 		Genome.match[i].paperID = papers[i].ID;
+		Genome.match[i].date.year = eventDate->start.tm_year;
 		Genome.match[i].date.min = ((int) random(0,12))*5;
 		Genome.match[i].date.hour = (int) random(0,24);
+		Genome.match[i].date.mon = eventDate->start.tm_mon;
+		
 		int rDay = (int) random(0, NB_DAYS);
 		int dayValue = (eventDate->start.tm_mday + rDay) % 31;
 		if(!dayValue) {
 			dayValue++;
+			Genome.match[i].date.mon++;
 		}
 		Genome.match[i].date.day = dayValue;
 	}
@@ -392,13 +585,16 @@ GenomeClass {
 	unsigned int nbMutations = 0;
 	for(unsigned int i = 0; i < papers.size(); i++) {
 		if (tossCoin(pMutPerGene)){
-			Genome.match[i].date.min = ((int) random(0,12))*5;
-			Genome.match[i].date.hour = (int) random(0,24);
+			Genome.match[i].date.min = ((int) random(0,12))*5; 	//0 à 55
+			Genome.match[i].date.hour = (int) random(0,24);		//0 à 23
+			Genome.match[i].date.mon = eventDate->start.tm_mon;	//0 à 11
+
 			int rDay = (int) random(0, NB_DAYS);
 			int dayValue = (eventDate->start.tm_mday + rDay) % 31;
 			if(!dayValue) {
 				dayValue++;
-			}
+				Genome.match[i].date.mon++;//attention décembre
+			} 
 			Genome.match[i].date.day = dayValue;
 			nbMutations++;
 		}
@@ -407,7 +603,27 @@ GenomeClass {
 \end
 
 \GenomeClass::evaluator : // Returns the score as a real value
+	// Must return an evaluation of the quality of the "Genome"
+	//float val[NB_PAPERS];
+	float res = 0.;
+	for(unsigned int i = 0; i<NB_PAPERS;i++){
+		//val[i]=0.;
+		for(unsigned int j = 0;j<5;j++) {
+			if(i!=j){
+				//val[i]-=dateOverlappingSeconds(Genome.match[i].date, Genome.match[j].date, papers[i].duration,papers[j].duration)/3600;
+				float overlap = dateOverlappingSeconds(Genome.match[i].date, Genome.match[j].date, papers[i].duration,papers[j].duration)/3600;			
+				//float ;
 
+				//if(value!=0.0){
+				//	cout << value << endl;
+				//}
+				res-=overlap;
+				//cout << "test : " << dateOverlappingSeconds(Genome.match[i].date, Genome.match[j].date, papers[i].duration,papers[j].duration)/3600 << endl;
+			}
+		}
+	}
+
+  	return res;
 \end
 
 \User Makefile options:
@@ -416,7 +632,7 @@ CPPFLAGS+=-std=c++11
 
 /*mutation et crossover à 0 pour seqfault*/
 \Default run parameters :        // Please let the parameters appear in this order
-  Number of generations : 300    // NB_GEN
+  Number of generations : 10    // NB_GEN
   Time limit: 0 			           // In seconds, 0 to deactivate
   Population size : 64		   //POP_SIZE
   Offspring size : 64// or a xx%
