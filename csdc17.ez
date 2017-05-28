@@ -541,6 +541,11 @@ GenomeClass {
 	Track* track15 = findTrack(tracks, 15);
 	Session* session15;
 
+	/*
+	for(unsigned int i = 0; i < NB_PAPERS; i++) {
+		
+	}
+
 	for(unsigned int t = 0; t < tracks.size(); t++) {
 		track = tracks[t];
 		for(unsigned int s = 0; s < track->sessions.size(); s++) {
@@ -550,19 +555,23 @@ GenomeClass {
 
 
 				for(unsigned int x = 0; x<track15->sessions.size();x++) {
-					session15 = track->sessions[x];
+					session15 = track15->sessions[x];
 					for(unsigned int y = 0; y < session15->papers.size(); y++) {
-						cout << "x: " << x << "y: " << y << endl;
-						//overlapTrack15 = dateOverlappingMins(Genome.match[i].date, Genome.match[j].date, papers[i].duration,papers[j].duration);			
+						paper15 = session15->papers[y];
+
+
+						overlapTrack15 = dateOverlappingMins(Genome.match[i].date, Genome.match[j].date, papers[i].duration,papers[j].duration);			
 					}
 				}
+
+
 
 				i++;
 
 			}
 		}
 	}
-
+	*/
   	return res;
 \end
 
