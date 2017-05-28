@@ -45,6 +45,9 @@ using namespace std;
 #define VALBON0 1		/* Valeur de bonus faible : éloignement entre eSession*/
 #define VALBON1 100		/* Valeur de bonus moyen : respect créneau*/
 
+
+#define NB_PAPERS_BY_SESSION 50
+
 /* Valeurs du fichier input */
 #define PAPER_ID 0
 #define TRACK_ID 1
@@ -405,7 +408,8 @@ Date {
 }
 
 Match {
-	int paperID;
+	int sessionID;
+	int order[NB_PAPERS_BY_SESSION];
 	Date date;
 }
 
@@ -515,7 +519,7 @@ GenomeClass {
 	for(unsigned int i = 0; i < NB_PAPERS; i++) {
 		if (tossCoin(pMutPerGene)){
 
-			Genome.match[i].date.sec = 0; 
+			Genome.match[i].date.sec = 0;
 			Genome.match[i].date.min = ((int) random(0,12))*5; 	//0 à 55
 			Genome.match[i].date.hour = (int) random(0,24);		//0 à 23
 
@@ -543,7 +547,7 @@ GenomeClass {
 
 	/*
 	for(unsigned int i = 0; i < NB_PAPERS; i++) {
-		
+
 	}
 
 	for(unsigned int t = 0; t < tracks.size(); t++) {
@@ -551,7 +555,7 @@ GenomeClass {
 		for(unsigned int s = 0; s < track->sessions.size(); s++) {
 			session = track->sessions[s];
 			for(unsigned int p = 0; p < session->papers.size(); p++) {
-				
+
 
 
 				for(unsigned int x = 0; x<track15->sessions.size();x++) {
@@ -560,7 +564,7 @@ GenomeClass {
 						paper15 = session15->papers[y];
 
 
-						overlapTrack15 = dateOverlappingMins(Genome.match[i].date, Genome.match[j].date, papers[i].duration,papers[j].duration);			
+						overlapTrack15 = dateOverlappingMins(Genome.match[i].date, Genome.match[j].date, papers[i].duration,papers[j].duration);
 					}
 				}
 
