@@ -31,6 +31,7 @@ _______________________________________________________________*/
 */
 #define NB_PAPERS 263 	/* Nombre de papers à placer */
 #define NB_DAYS 2
+#define NB_SESSIONS 70
 
 
 using namespace std;
@@ -150,6 +151,20 @@ void setEventDate() {
 	strptime(jour_debut.c_str(), "%F %T", &(eventDate->start));
 	strptime(jour_fin.c_str(), "%F %T", &(eventDate->end));
 }*/
+
+void drawWithoutReplacement(int* tab, int n) {
+	int passageOrders[n];
+	for (int k = 0; k < n; k++) {
+	    passageOrders[k] = k;
+	}
+	for (int k = 0; k < n; k++) {
+		int index = random(k, n);
+		int passageOrder = passageOrders[index];
+		tab[k] = passageOrder+1;
+		passageOrders[index] = passageOrders[k];
+		passageOrders[k] = passageOrder;
+	}
+}
 
 vector<Constraint> parseConstraints(string subject, int day) {
     vector<Constraint> res;
@@ -410,6 +425,7 @@ Date {
 Match {
 	int sessionID;
 	int order[NB_PAPERS_BY_SESSION];
+	int nbPapers;
 	Date date;
 }
 
@@ -440,6 +456,14 @@ GenomeClass {
 	printf("TEMPS D'EXECUTION\t:\t%2.1f secondes\n", runDuration );
 
 	//std::cout << "Nb papers :" << papers.size() << "\n";
+	std::cout << "Nb tracks :" << tracks.size() << "\n";
+
+	int tab[10];
+	drawWithoutReplacement(tab, 10);
+
+	for (int i = 0; i < 10; i++) {
+		std::cout << "Order: " << tab[i] << "\n";
+	}
 	std::cout << "Nb tracks :" << tracks.size() << "\n";
 
 	//displayPapers(papers[0]);
@@ -488,17 +512,14 @@ GenomeClass {
 		Track* track = tracks[t];
 		for(unsigned int s = 0; s < track->sessions.size(); s++) {
 			Session* session = track->sessions[s];
-			for(unsigned int p = 0; p < session->papers.size(); p++) {
-				Paper* paper = session->papers[p];
-				Genome.match[i].paperID = paper->ID;
-
-				Genome.match[i].date.sec = 0;
-				Genome.match[i].date.min = ((int) random(0,12))*5;
-				Genome.match[i].date.hour = (int) random(0,24);
-				Genome.match[i].date.nday = (int) random(0, NB_DAYS);
-
-				i++;
-			}
+			Genome.match[i].nbPapers = session->papers.size();
+			Genome.match[i].sessionID = session->ID;
+			drawWithoutReplacement(Genome.match[i].order, session->papers.size());
+			Genome.match[i].date.sec = 0;
+			Genome.match[i].date.min = ((int) random(0,12))*5;
+			Genome.match[i].date.hour = (int) random(0,24);
+			Genome.match[i].date.nday = (int) random(0, NB_DAYS);
+			i++;
 		}
 	}
 \end
@@ -507,7 +528,7 @@ GenomeClass {
 	// must create "child" out of "parent1" and "parent2"
 	float limit = 0.5;
 
-	for (unsigned int i=0; i<NB_PAPERS; i++)
+	for (unsigned int i=0; i<NB_SESSIONS; i++)
 	{
 		if((float)random(0.,1.) < limit)
 		{ child.match[i].date = parent2.match[i].date; }
@@ -516,13 +537,12 @@ GenomeClass {
 
 \GenomeClass::mutator : // Must return the number of mutations
 	unsigned int nbMutations = 0;
-	for(unsigned int i = 0; i < NB_PAPERS; i++) {
+	for(unsigned int i = 0; i < NB_SESSIONS; i++) {
 		if (tossCoin(pMutPerGene)){
-
+			drawWithoutReplacement(Genome.match[i].order, Genome.match[i].nbPapers);
 			Genome.match[i].date.sec = 0;
 			Genome.match[i].date.min = ((int) random(0,12))*5; 	//0 à 55
 			Genome.match[i].date.hour = (int) random(0,24);		//0 à 23
-
 			Genome.match[i].date.nday = (int) random(0, NB_DAYS);
 
 			nbMutations++;
