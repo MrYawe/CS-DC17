@@ -30,7 +30,7 @@ _______________________________________________________________*/
 #define MIN(x,y) ((x)<(y)?(x):(y))
 */
 
-#define NB_SESSIONS 70 	/* Nombre de sessions */
+#define NB_SESSIONS 54 	/* Nombre de sessions */
 #define NB_PAPERS 263 	/* Nombre de papers à placer */
 #define NB_DAYS 2
 
@@ -226,6 +226,15 @@ Session* findSession(Track *track, int sessionID) {
 	return NULL;
 }
 
+Paper* findPaper(Session *session, int paperID) {
+	for (unsigned i = 0; i < session->papers.size(); i++) {
+		if(session->papers[i]->ID == paperID) {
+			return session->papers[i];
+		}
+	}
+	return NULL;
+}
+
 void readPapersFile() {
     std::string delimiter = "|";
     ifstream fPaper;
@@ -370,6 +379,9 @@ int dateOverlapping(int date1_start, int date1_end, int date2_start, int date2_e
 		//cout << "date 2 fini plus tôt" << endl;
 	}
 	int score = (early-later);
+	if(score<0){
+		score=0;
+	}
 
 	return score;
 }
@@ -407,13 +419,11 @@ int dateOverlappingMinsConstraints(Date d1, int dur1, Constraint c) {
 }
 
 
-int evaluateConstraint(Session* s, Date date) {
-	int score = 0;
 
 
 
-	return score;
-}
+
+
 
 
 /* ---------------------------------------------------------------------------- */
@@ -603,7 +613,7 @@ GenomeClass {
 	//Track* track15 = findTrack(tracks, 15);
 	//Session* session15;
 
-
+	int valueOverlap15=0;
 	//Evaluator to let track 15 alone
 	for(unsigned int s = 0; s < NB_SESSIONS; s++) { //get track 15 sessions
 		if(Genome.match[s].trackID == 15) {
@@ -612,7 +622,8 @@ GenomeClass {
 				if(Genome.match[i].trackID == 15 && Genome.match[i].sessionID == Genome.match[s].sessionID) { 
 					//Nothing to do
 				} else {
-					overlapTrack15-=dateOverlappingMins(Genome.match[i].date, Genome.match[s].date, Genome.match[i].duration, Genome.match[s].duration);
+					valueOverlap15=dateOverlappingMins(Genome.match[i].date, Genome.match[s].date, Genome.match[i].duration, Genome.match[s].duration);
+					overlapTrack15-=(valueOverlap15<0)?0:valueOverlap15;
 					//cout <<dateOverlappingMins(Genome.match[i].date, Genome.match[s].date, Genome.match[i].duration, Genome.match[s].duration) << endl;
 				}
 
@@ -626,17 +637,65 @@ GenomeClass {
 		}
 	}
 
-	Session* currentSession;
+	/*Session* currentSession;
 	Track* currentTrack;
 	//Evaluator to respect the disponibility constraints
 	for(unsigned int i = 0; i < NB_SESSIONS; i++) { //loop on sessions
 		
-		//currentTrack = findTrack(tracks, Genome.match[i].trackID);
-		//currentSession = findSession(currentTrack, Genome.match[i].sessionID);
+		currentTrack = findTrack(tracks, Genome.match[i].trackID);
+		currentSession = findSession(currentTrack, Genome.match[i].sessionID);
 
 		//evaluateConstraint(currentSession, Genome.match[i].date);
 
 		
+	}*/
+
+	
+	Session* currentSession;
+	Track* currentTrack;
+	Paper* currentPaper;
+	int currentPaperID;
+	int sessionDateMins = 0;
+	int currentDurationStart = 0;
+	vector<Constraint> day1;
+	vector<Constraint> day2;
+	vector<Constraint> day3;
+
+	vector<Paper*> papers;
+
+	//Evaluator to respect the disponibility constraints
+	for(unsigned int i = 0; i < NB_SESSIONS; i++) { //loop on sessions
+		
+		currentTrack = findTrack(tracks, Genome.match[i].trackID);
+		currentSession = findSession(currentTrack, Genome.match[i].sessionID);
+
+		currentDurationStart=0;
+		sessionDateMins=convertDateToMins(Genome.match[i].date);
+
+		//evaluateConstraint(currentSession, Genome.match[i].date);
+		for(unsigned int j = 0;j<Genome.match[i].nbPapers;j++) {
+			currentPaperID = Genome.match[i].order[j];
+			currentPaper = findPaper(currentSession, currentPaperID);
+
+			day1=currentPaper->day1;
+			for(unsigned int c = 0;c<day1.size();c++){
+				//day1[c]
+				overlapDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(day1[c].start), convertDateToMins(day1[c].end));
+			}
+
+			day2=currentPaper->day2;
+			for(unsigned int c = 0;c<day2.size();c++){
+				overlapDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(day2[c].start), convertDateToMins(day2[c].end));
+			}
+
+			day3=currentPaper->day3;
+			for(unsigned int c = 0;c<day3.size();c++){
+				overlapDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(day3[c].start), convertDateToMins(day3[c].end));
+			}
+			currentDurationStart+=currentPaper->duration;
+
+			//overlapping = durée du papier à 1 min près ajout bonus
+		}
 	}
 
 	res+=overlapTrack15;
