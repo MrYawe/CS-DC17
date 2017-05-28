@@ -30,7 +30,7 @@ _______________________________________________________________*/
 #define MIN(x,y) ((x)<(y)?(x):(y))
 */
 
-#define NB_SESSIONS 70 	/* Nombre de sessions */
+#define NB_SESSIONS 54 	/* Nombre de sessions */
 #define NB_PAPERS 263 	/* Nombre de papers à placer */
 #define NB_DAYS 2
 
@@ -154,17 +154,30 @@ void setEventDate() {
 	strptime(jour_fin.c_str(), "%F %T", &(eventDate->end));
 }*/
 
-void drawWithoutReplacement(int* tab, int n) {
-	int passageOrders[n];
-	for (int k = 0; k < n; k++) {
-	    passageOrders[k] = k;
-	}
+void drawWithoutReplacement(int* src, int* dest, int n) {
 	for (int k = 0; k < n; k++) {
 		int index = random(k, n);
-		int passageOrder = passageOrders[index];
-		tab[k] = passageOrder+1;
-		passageOrders[index] = passageOrders[k];
-		passageOrders[k] = passageOrder;
+		int val = src[index];
+		dest[k] = val;
+		src[index] = src[k];
+		src[k] = val;
+	}
+}
+
+void swapValues(int* tab, int i1, int i2) {
+	int tmp = tab[i2];
+	tab[i2] = tab[i1];
+	tab[i1] = tmp;
+}
+
+// Switch n value of the array
+void switchValues(int* tab, int size, int n) {
+	for (int k = 0; k < n; k++) {
+		int index1 = random(0, size);
+		int index2 = random(0, size);
+		int tmp = tab[index2];
+		tab[index2] = tab[index1];
+		tab[index1] = tmp;
 	}
 }
 
@@ -398,7 +411,7 @@ int dateOverlappingMinsConstraints(Date d1, int dur1, Constraint c) {
 	int date2_end = convertDateToMins(c.end);
 
 	int score = dateOverlapping(date1_start,date1_end,date2_start,date2_end);
-	
+
 	/*if(score<0) {
 		score=0;
 	}*/
@@ -475,13 +488,27 @@ GenomeClass {
 	//std::cout << "Nb papers :" << papers.size() << "\n";
 	std::cout << "Nb tracks :" << tracks.size() << "\n";
 
-	int tab[10];
-	drawWithoutReplacement(tab, 10);
+	int tab[tracks[0]->sessions[0]->papers.size()];
+	int drawBox[tracks[0]->sessions[0]->papers.size()];
+	for (unsigned int k = 0; k < tracks[0]->sessions[0]->papers.size() ; k++) {
+		drawBox[k] = tracks[0]->sessions[0]->papers[k]->ID;
+	}
+	drawWithoutReplacement(drawBox, tab, tracks[0]->sessions[0]->papers.size());
 
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < tracks[0]->sessions[0]->papers.size(); i++) {
 		std::cout << "Order: " << tab[i] << "\n";
 	}
-	std::cout << "Nb tracks :" << tracks.size() << "\n";
+
+	switchValues(tab, tracks[0]->sessions[0]->papers.size(), 1);
+
+	std::cout << "\n";
+	for (int i = 0; i < tracks[0]->sessions[0]->papers.size(); i++) {
+		std::cout << "Order: " << tab[i] << "\n";
+	}
+
+
+
+	std::cout << "Best :" << bBest->match[0].sessionID << "\n";
 
 	//displayPapers(papers[0]);
 
@@ -554,7 +581,12 @@ GenomeClass {
 			Genome.match[i].sessionID = session->ID;
 			Genome.match[i].duration = session->duration;
 			//cout << "trackIDDD : " << session->TrackID << " i : " << i << " pepersize " << session->papers.size() << endl;
-			drawWithoutReplacement(Genome.match[i].order, session->papers.size());
+
+			int drawBox[session->papers.size()];
+			for (unsigned int k = 0; k < session->papers.size() ; k++) {
+				drawBox[k] = session->papers[k]->ID;
+			}
+			drawWithoutReplacement(drawBox, Genome.match[i].order, session->papers.size());
 			Genome.match[i].date.sec = 0;
 			Genome.match[i].date.min = ((int) random(0,12))*5;
 			Genome.match[i].date.hour = (int) random(0,24);
@@ -579,7 +611,7 @@ GenomeClass {
 	unsigned int nbMutations = 0;
 	for(unsigned int i = 0; i < NB_SESSIONS; i++) {
 		if (tossCoin(pMutPerGene)){
-			drawWithoutReplacement(Genome.match[i].order, Genome.match[i].nbPapers);
+			//drawWithoutReplacement(Genome.match[i].order, Genome.match[i].nbPapers);
 			Genome.match[i].date.sec = 0;
 			Genome.match[i].date.min = ((int) random(0,12))*5; 	//0 à 55
 			Genome.match[i].date.hour = (int) random(0,24);		//0 à 23
@@ -587,6 +619,10 @@ GenomeClass {
 
 			nbMutations++;
 		}
+
+		int nbSwitch = random(0, Genome.match[i].nbPapers);
+		switchValues(Genome.match[i].order, Genome.match[i].nbPapers, nbSwitch);
+
 	}
 	return nbMutations;
 \end
@@ -609,7 +645,7 @@ GenomeClass {
 		if(Genome.match[s].trackID == 15) {
 			for(unsigned int i = 0; i < NB_SESSIONS; i++) { //compare to other sessions dates
 
-				if(Genome.match[i].trackID == 15 && Genome.match[i].sessionID == Genome.match[s].sessionID) { 
+				if(Genome.match[i].trackID == 15 && Genome.match[i].sessionID == Genome.match[s].sessionID) {
 					//Nothing to do
 				} else {
 					overlapTrack15-=dateOverlappingMins(Genome.match[i].date, Genome.match[s].date, Genome.match[i].duration, Genome.match[s].duration);
@@ -630,13 +666,13 @@ GenomeClass {
 	Track* currentTrack;
 	//Evaluator to respect the disponibility constraints
 	for(unsigned int i = 0; i < NB_SESSIONS; i++) { //loop on sessions
-		
+
 		//currentTrack = findTrack(tracks, Genome.match[i].trackID);
 		//currentSession = findSession(currentTrack, Genome.match[i].sessionID);
 
 		//evaluateConstraint(currentSession, Genome.match[i].date);
 
-		
+
 	}
 
 	res+=overlapTrack15;
