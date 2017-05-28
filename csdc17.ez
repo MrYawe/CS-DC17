@@ -64,6 +64,7 @@ class Constraint {
 	public:tm end;				/* Fin de la contrainte		*/
 };
 /* Classe représentant une classe d'élèves.			*/
+
 class Paper {
 	public:int ID;						/* Identifiant du papier 	*/
 	public:int TrackID;					/* Identifiant du track		*/
@@ -79,6 +80,19 @@ class Paper {
 	public:tm date;					/* Date de passage 			*/
 };
 
+class Session {
+	public:int ID;
+	public:int TrackID;
+	public:vector<Paper*> papers;
+};
+
+class Track {
+	public:int ID;
+	public:vector<Session*> sessions;
+};
+
+
+
 /********************************************************************************/
 /******///             DECLARATION DES VARIABLES GLOBALES               ///******/
 /********************************************************************************/
@@ -91,7 +105,7 @@ double runDuration;				/* temps de calcul						*/
 //vector<Constraint> eventDates; 	/* Dates de l'événement 				*/
 Constraint* eventDate; 				/* Date de l'événement 				*/
 
-vector<Paper> papers;			/* Liste contenant tous les papers 		*/
+vector<Track*> tracks; /* Liste contenant tous les e-tracks 		*/
 
 /* ---------------------------------------------------------------------------- */
 \end
@@ -231,6 +245,24 @@ vector<Constraint> parseConstraints(string subject, int day) {
     return res;
 }
 
+Track* findTrack(vector<Track*> tracks, int trackID) {
+	for (unsigned i = 0; i < tracks.size(); i++) {
+		if(tracks[i]->ID == trackID) {
+			return tracks[i];
+		}
+	}
+	return NULL;
+}
+
+Session* findSession(Track *track, int sessionID) {
+	for (unsigned i = 0; i < track->sessions.size(); i++) {
+		if(track->sessions[i]->ID == sessionID) {
+			return track->sessions[i];
+		}
+	}
+	return NULL;
+}
+
 void readPapersFile() {
     std::string delimiter = "|";
     ifstream fPaper;
@@ -275,7 +307,23 @@ void readPapersFile() {
                 line.erase(0, pos + delimiter.length());
                 i++;
             }
-            papers.push_back(*p);
+
+			Track* track = findTrack(tracks, p->TrackID);
+			if(track == NULL) {
+				track = new Track();
+				track->ID = p->TrackID;
+				tracks.push_back(track);
+			}
+
+			Session* session = findSession(track, p->SessionID);
+			if(session == NULL) {
+				session = new Session();
+				session->ID = p->SessionID;
+				session->TrackID = p->TrackID;
+				track->sessions.push_back(session);
+			}
+
+			session->papers.push_back(p);
         }
     }
 }
@@ -505,9 +553,10 @@ GenomeClass {
 	runDuration = (double)(finish - start) / CLOCKS_PER_SEC;
 	printf("TEMPS D'EXECUTION\t:\t%2.1f secondes\n", runDuration );
 
-	std::cout << "Nb papers :" << papers.size() << "\n";
+	//std::cout << "Nb papers :" << papers.size() << "\n";
+	std::cout << "Nb tracks :" << tracks.size() << "\n";
 
-	displayPapers(papers[0]);
+	//displayPapers(papers[0]);
 
 	displayEventDate();
 
@@ -553,20 +602,29 @@ GenomeClass {
 
 //PRISE EN COMPTE DU MOIS/ANNEE
 \GenomeClass::initialiser : // "initializer" is also accepted
-	for(unsigned int i = 0; i < papers.size(); i++) {
-		Genome.match[i].paperID = papers[i].ID;
-		Genome.match[i].date.year = eventDate->start.tm_year;
-		Genome.match[i].date.min = ((int) random(0,12))*5;
-		Genome.match[i].date.hour = (int) random(0,24);
-		Genome.match[i].date.mon = eventDate->start.tm_mon;
+	int i = 0;
+	for(unsigned int t = 0; t < tracks.size(); t++) {
+		Track* track = tracks[t];
+		for(unsigned int s = 0; s < track->sessions.size(); s++) {
+			Session* session = track->sessions[s];
+			for(unsigned int p = 0; p < session->papers.size(); p++) {
+				Paper* paper = session->papers[p];
+				Genome.match[i].paperID = paper->ID;
+				Genome.match[i].date.year = eventDate->start.tm_year;
+				Genome.match[i].date.min = ((int) random(0,12))*5;
+				Genome.match[i].date.hour = (int) random(0,24);
+				Genome.match[i].date.mon = eventDate->start.tm_mon;
 
-		int rDay = (int) random(0, NB_DAYS);
-		int dayValue = (eventDate->start.tm_mday + rDay) % 31;
-		if(!dayValue) {
-			dayValue++;
-			Genome.match[i].date.mon++;
+				int rDay = (int) random(0, NB_DAYS);
+				int dayValue = (eventDate->start.tm_mday + rDay) % 31;
+				if(!dayValue) {
+					dayValue++;
+					Genome.match[i].date.mon++;
+				}
+				Genome.match[i].date.day = dayValue;
+				i++;
+			}
 		}
-		Genome.match[i].date.day = dayValue;
 	}
 \end
 
@@ -583,7 +641,7 @@ GenomeClass {
 
 \GenomeClass::mutator : // Must return the number of mutations
 	unsigned int nbMutations = 0;
-	for(unsigned int i = 0; i < papers.size(); i++) {
+	for(unsigned int i = 0; i < NB_PAPERS; i++) {
 		if (tossCoin(pMutPerGene)){
 			Genome.match[i].date.min = ((int) random(0,12))*5; 	//0 à 55
 			Genome.match[i].date.hour = (int) random(0,24);		//0 à 23
@@ -611,13 +669,13 @@ GenomeClass {
 		for(unsigned int j = 0;j<5;j++) {
 			if(i!=j){
 				//val[i]-=dateOverlappingSeconds(Genome.match[i].date, Genome.match[j].date, papers[i].duration,papers[j].duration)/3600;
-				float overlap = dateOverlappingSeconds(Genome.match[i].date, Genome.match[j].date, papers[i].duration,papers[j].duration)/3600;
+				//float overlap = dateOverlappingSeconds(Genome.match[i].date, Genome.match[j].date, papers[i].duration,papers[j].duration)/3600;
 				//float ;
 
 				//if(value!=0.0){
 				//	cout << value << endl;
 				//}
-				res-=overlap;
+				//res-=overlap;
 				//cout << "test : " << dateOverlappingSeconds(Genome.match[i].date, Genome.match[j].date, papers[i].duration,papers[j].duration)/3600 << endl;
 			}
 		}
