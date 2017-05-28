@@ -343,7 +343,7 @@ void displayPapers(Paper p) {
 */
 
 int convertDateToMinValue(Date d){
-	return (d.year * 365 + d.mon * 31 + d.day * 24 + d.hour * 60 + d.min); 
+	return (d.year * 365 + d.mon * 31 + d.day * 24 + d.hour * 60 + d.min);
 }
 
 /*int dateOverlappingScore(Date d1, Date d2, int dur1, int dur2) {
@@ -356,7 +356,7 @@ int convertDateToMinValue(Date d){
 	tm1.tm_hour=	d1.hour;
 	tm1.tm_min=		d1.min;
 	tm1.tm_sec=		32;
-	tm tm2; 
+	tm tm2;
 	tm2.tm_year=	d2.year-1900;
 	tm2.tm_mon=		d2.mon;
 	tm2.tm_mday=	d2.day;
@@ -482,7 +482,7 @@ GenomeClass {
 
 
 	//tm start = value.start;
-	
+
 	cout << endl;
 
 	//cout << "test:"<< start.tm_hour << endl;
@@ -559,7 +559,7 @@ GenomeClass {
 		Genome.match[i].date.min = ((int) random(0,12))*5;
 		Genome.match[i].date.hour = (int) random(0,24);
 		Genome.match[i].date.mon = eventDate->start.tm_mon;
-		
+
 		int rDay = (int) random(0, NB_DAYS);
 		int dayValue = (eventDate->start.tm_mday + rDay) % 31;
 		if(!dayValue) {
@@ -594,7 +594,7 @@ GenomeClass {
 			if(!dayValue) {
 				dayValue++;
 				Genome.match[i].date.mon++;//attention décembre
-			} 
+			}
 			Genome.match[i].date.day = dayValue;
 			nbMutations++;
 		}
@@ -611,7 +611,7 @@ GenomeClass {
 		for(unsigned int j = 0;j<5;j++) {
 			if(i!=j){
 				//val[i]-=dateOverlappingSeconds(Genome.match[i].date, Genome.match[j].date, papers[i].duration,papers[j].duration)/3600;
-				float overlap = dateOverlappingSeconds(Genome.match[i].date, Genome.match[j].date, papers[i].duration,papers[j].duration)/3600;			
+				float overlap = dateOverlappingSeconds(Genome.match[i].date, Genome.match[j].date, papers[i].duration,papers[j].duration)/3600;
 				//float ;
 
 				//if(value!=0.0){
