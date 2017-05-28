@@ -735,6 +735,7 @@ GenomeClass {
 	}
 
 	res+=overlapTrack15;
+	res+=overlapDisponibility;
   	return res;
 \end
 
