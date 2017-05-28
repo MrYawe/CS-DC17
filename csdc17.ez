@@ -154,6 +154,20 @@ void setEventDate() {
 	strptime(jour_fin.c_str(), "%F %T", &(eventDate->end));
 }*/
 
+void drawWithoutReplacement(int* tab, int n) {
+	int passageOrders[n];
+	for (int k = 0; k < n; k++) {
+	    passageOrders[k] = k;
+	}
+	for (int k = 0; k < n; k++) {
+		int index = random(k, n);
+		int passageOrder = passageOrders[index];
+		tab[k] = passageOrder+1;
+		passageOrders[index] = passageOrders[k];
+		passageOrders[k] = passageOrder;
+	}
+}
+
 vector<Constraint> parseConstraints(string subject, int day) {
     vector<Constraint> res;
     std::regex re("\\[(\\d*):(\\d*),(\\d*):(\\d*)\\]");
@@ -370,6 +384,9 @@ int dateOverlappingMins(Date d1, Date d2, int dur1, int dur2) {
 
 	int score = dateOverlapping(date1_start,date1_end,date2_start,date2_end);
 
+	/*if(score<0) {
+		score=0;
+	}*/
 	return score;
 }
 
@@ -388,6 +405,16 @@ int dateOverlappingMinsConstraints(Date d1, int dur1, Constraint c) {
 
 	return score;
 }
+
+
+int evaluateConstraint(Session* s, Date date) {
+	int score = 0;
+
+
+
+	return score;
+}
+
 
 /* ---------------------------------------------------------------------------- */
 \end
@@ -413,7 +440,9 @@ Date {
 Match {
 	int sessionID;
 	int trackID;
+	int duration;
 	int order[NB_PAPERS_BY_SESSION];
+	int nbPapers;
 	Date date;
 }
 
@@ -446,10 +475,38 @@ GenomeClass {
 	//std::cout << "Nb papers :" << papers.size() << "\n";
 	std::cout << "Nb tracks :" << tracks.size() << "\n";
 
+	int tab[10];
+	drawWithoutReplacement(tab, 10);
+
+	for (int i = 0; i < 10; i++) {
+		std::cout << "Order: " << tab[i] << "\n";
+	}
+	std::cout << "Nb tracks :" << tracks.size() << "\n";
+
 	//displayPapers(papers[0]);
 
 	//displayEventDate();
+/*
+	cout << "overlapping dates : " << endl;
+	Date d1;
 
+	d1.nday = 	1;
+	d1.hour =	10;
+	d1.min =	00;
+	d1.sec = 	0;
+
+	Date d2;
+
+	d2.nday = 	1;
+	d2.hour =	11;
+	d2.min =	00;
+	d2.sec = 	0;
+
+	int dur1=30;
+	int dur2=30;
+
+	cout << " test : " << dateOverlappingMins(d1,d2,dur1,dur2);
+*/
 	/*cout << "overlapping constraints : " << endl;
 	Date d1;
 
@@ -485,24 +542,24 @@ GenomeClass {
 \GenomeClass::display:
 \end
 
-//PRISE EN COMPTE DU MOIS/ANNEE
 \GenomeClass::initialiser : // "initializer" is also accepted
 	int i = 0;
 	for(unsigned int t = 0; t < tracks.size(); t++) {
 		Track* track = tracks[t];
 		for(unsigned int s = 0; s < track->sessions.size(); s++) {
 			Session* session = track->sessions[s];
-			for(unsigned int p = 0; p < session->papers.size(); p++) {
-				Paper* paper = session->papers[p];
-				//Genome.match[i].paperID = paper->ID;
 
-				Genome.match[i].date.sec = 0;
-				Genome.match[i].date.min = ((int) random(0,12))*5;
-				Genome.match[i].date.hour = (int) random(0,24);
-				Genome.match[i].date.nday = (int) random(0, NB_DAYS);
-
-				i++;
-			}
+			Genome.match[i].nbPapers = session->papers.size();
+			Genome.match[i].trackID = session->TrackID;
+			Genome.match[i].sessionID = session->ID;
+			Genome.match[i].duration = session->duration;
+			//cout << "trackIDDD : " << session->TrackID << " i : " << i << " pepersize " << session->papers.size() << endl;
+			drawWithoutReplacement(Genome.match[i].order, session->papers.size());
+			Genome.match[i].date.sec = 0;
+			Genome.match[i].date.min = ((int) random(0,12))*5;
+			Genome.match[i].date.hour = (int) random(0,24);
+			Genome.match[i].date.nday = (int) random(0, NB_DAYS);
+			i++;
 		}
 	}
 \end
@@ -511,7 +568,7 @@ GenomeClass {
 	// must create "child" out of "parent1" and "parent2"
 	float limit = 0.5;
 
-	for (unsigned int i=0; i<NB_PAPERS; i++)
+	for (unsigned int i=0; i<NB_SESSIONS; i++)
 	{
 		if((float)random(0.,1.) < limit)
 		{ child.match[i].date = parent2.match[i].date; }
@@ -520,13 +577,12 @@ GenomeClass {
 
 \GenomeClass::mutator : // Must return the number of mutations
 	unsigned int nbMutations = 0;
-	for(unsigned int i = 0; i < NB_PAPERS; i++) {
+	for(unsigned int i = 0; i < NB_SESSIONS; i++) {
 		if (tossCoin(pMutPerGene)){
-
+			drawWithoutReplacement(Genome.match[i].order, Genome.match[i].nbPapers);
 			Genome.match[i].date.sec = 0;
 			Genome.match[i].date.min = ((int) random(0,12))*5; 	//0 à 55
 			Genome.match[i].date.hour = (int) random(0,24);		//0 à 23
-
 			Genome.match[i].date.nday = (int) random(0, NB_DAYS);
 
 			nbMutations++;
@@ -540,64 +596,50 @@ GenomeClass {
 	//float val[NB_PAPERS];
 	float res = 0.;
 	float overlapTrack15 = 0.;
+	float overlapDisponibility = 0.;
+
 	//float overlapDisponibility = 0.;
 
-	Track* track15 = findTrack(tracks, 15);
-	Session* session15;
+	//Track* track15 = findTrack(tracks, 15);
+	//Session* session15;
 
-	for(unsigned int s = 0;s<track15->sessions.size();s++){
-		session15 = track15->sessions[s];
 
-		for(unsigned int i = 0; i < NB_SESSIONS; i++) {
+	//Evaluator to let track 15 alone
+	for(unsigned int s = 0; s < NB_SESSIONS; s++) { //get track 15 sessions
+		if(Genome.match[s].trackID == 15) {
+			for(unsigned int i = 0; i < NB_SESSIONS; i++) { //compare to other sessions dates
 
-			if(Genome.match[i].sessionID != session15->ID) {
-				//
-				if(Genome.match[i].trackID == 15) {
-					cout << "5 fois" << endl;
+				if(Genome.match[i].trackID == 15 && Genome.match[i].sessionID == Genome.match[s].sessionID) { 
+					//Nothing to do
+				} else {
+					overlapTrack15-=dateOverlappingMins(Genome.match[i].date, Genome.match[s].date, Genome.match[i].duration, Genome.match[s].duration);
+					//cout <<dateOverlappingMins(Genome.match[i].date, Genome.match[s].date, Genome.match[i].duration, Genome.match[s].duration) << endl;
 				}
-			}
-			else {
-			}
-			/*
-			Genome.match[i].date.sec = 0;
-			Genome.match[i].date.min = ((int) random(0,12))*5; 	//0 à 55
-			Genome.match[i].date.hour = (int) random(0,24);		//0 à 23
 
-			Genome.match[i].date.nday = (int) random(0, NB_DAYS);*/
+				/*
+				Genome.match[i].date.sec = 0;
+				Genome.match[i].date.min = ((int) random(0,12))*5; 	//0 à 55
+				Genome.match[i].date.hour = (int) random(0,24);		//0 à 23
+
+				Genome.match[i].date.nday = (int) random(0, NB_DAYS);*/
+			}
 		}
 	}
 
-	/*
-	for(unsigned int i = 0; i < NB_PAPERS; i++) {
+	Session* currentSession;
+	Track* currentTrack;
+	//Evaluator to respect the disponibility constraints
+	for(unsigned int i = 0; i < NB_SESSIONS; i++) { //loop on sessions
+		
+		//currentTrack = findTrack(tracks, Genome.match[i].trackID);
+		//currentSession = findSession(currentTrack, Genome.match[i].sessionID);
 
+		//evaluateConstraint(currentSession, Genome.match[i].date);
+
+		
 	}
 
-	for(unsigned int t = 0; t < tracks.size(); t++) {
-		track = tracks[t];
-		for(unsigned int s = 0; s < track->sessions.size(); s++) {
-			session = track->sessions[s];
-			for(unsigned int p = 0; p < session->papers.size(); p++) {
-
-
-
-				for(unsigned int x = 0; x<track15->sessions.size();x++) {
-					session15 = track15->sessions[x];
-					for(unsigned int y = 0; y < session15->papers.size(); y++) {
-						paper15 = session15->papers[y];
-
-
-						overlapTrack15 = dateOverlappingMins(Genome.match[i].date, Genome.match[j].date, papers[i].duration,papers[j].duration);
-					}
-				}
-
-
-
-				i++;
-
-			}
-		}
-	}
-	*/
+	res+=overlapTrack15;
   	return res;
 \end
 
@@ -607,7 +649,7 @@ CPPFLAGS+=-std=c++11
 
 /*mutation et crossover à 0 pour seqfault*/
 \Default run parameters :        // Please let the parameters appear in this order
-  Number of generations : 1    // NB_GEN
+  Number of generations : 100    // NB_GEN
   Time limit: 0 			           // In seconds, 0 to deactivate
   Population size : 64		   //POP_SIZE
   Offspring size : 64// or a xx%
