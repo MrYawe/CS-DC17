@@ -29,6 +29,8 @@ _______________________________________________________________*/
 #define MAX(x,y) ((x)>(y)?(x):(y))
 #define MIN(x,y) ((x)<(y)?(x):(y))
 */
+
+#define NB_SESSIONS 70 	/* Nombre de sessions */
 #define NB_PAPERS 263 	/* Nombre de papers à placer */
 #define NB_DAYS 2
 
@@ -83,6 +85,7 @@ class Paper {
 class Session {
 	public:int ID;
 	public:int TrackID;
+	public:int duration;
 	public:vector<Paper*> papers;
 };
 
@@ -266,10 +269,12 @@ void readPapersFile() {
 				session = new Session();
 				session->ID = p->SessionID;
 				session->TrackID = p->TrackID;
+				session->duration = 0;
 				track->sessions.push_back(session);
 			}
 
 			session->papers.push_back(p);
+        	session->duration+=p->duration;
         }
     }
 }
@@ -322,13 +327,17 @@ int convertDateToMins(Date d) {
 	return d.nday*24*60 + d.hour*60 + d.min;
 }
 
-int dateOverlappingMins(Date d1, Date d2, int dur1, int dur2) {
-	int date1_start = convertDateToMins(d1);
-	int date1_end = convertDateToMins(d1)+dur1;
+/*
+int getSessionDuration(Session* s){
+	int res=0;
+	for(unsigned int i=0;i<s->papers.size();i++){
+		s->papers[i];
+	}
+	return res;
+}*/
 
-	int date2_start = convertDateToMins(d2);
-	int date2_end = convertDateToMins(d2)+dur2;
 
+int dateOverlapping(int date1_start, int date1_end, int date2_start, int date2_end) {
 	int later;
 	int early;
 
@@ -347,9 +356,19 @@ int dateOverlappingMins(Date d1, Date d2, int dur1, int dur2) {
 		//cout << "date 2 fini plus tôt" << endl;
 	}
 	int score = (early-later);
-	if(score<0) {
-		score=0;
-	}
+
+	return score;
+}
+
+
+int dateOverlappingMins(Date d1, Date d2, int dur1, int dur2) {
+	int date1_start = convertDateToMins(d1);
+	int date1_end = convertDateToMins(d1)+dur1;
+
+	int date2_start = convertDateToMins(d2);
+	int date2_end = convertDateToMins(d2)+dur2;
+
+	int score = dateOverlapping(date1_start,date1_end,date2_start,date2_end);
 
 	return score;
 }
@@ -361,24 +380,8 @@ int dateOverlappingMinsConstraints(Date d1, int dur1, Constraint c) {
 	int date2_start = convertDateToMins(c.start);
 	int date2_end = convertDateToMins(c.end);
 
-	int later;
-	int early;
-
-	if(date1_start>date2_start) {
-		later=date1_start;
-		//cout << "date 1 commence plus tard" << endl;
-	} else {
-		later=date2_start;
-		//cout << "date 2 commence plus tard" << endl;
-	}
-	if(date1_end<date2_end) {
-		early=date1_end;
-		//cout << "date 1 fini plus tôt" << endl;
-	} else {
-		early=date2_end;
-		//cout << "date 2 fini plus tôt" << endl;
-	}
-	int score = (early-later);
+	int score = dateOverlapping(date1_start,date1_end,date2_start,date2_end);
+	
 	/*if(score<0) {
 		score=0;
 	}*/
@@ -409,6 +412,7 @@ Date {
 
 Match {
 	int sessionID;
+	int trackID;
 	int order[NB_PAPERS_BY_SESSION];
 	Date date;
 }
@@ -490,7 +494,7 @@ GenomeClass {
 			Session* session = track->sessions[s];
 			for(unsigned int p = 0; p < session->papers.size(); p++) {
 				Paper* paper = session->papers[p];
-				Genome.match[i].paperID = paper->ID;
+				//Genome.match[i].paperID = paper->ID;
 
 				Genome.match[i].date.sec = 0;
 				Genome.match[i].date.min = ((int) random(0,12))*5;
@@ -537,13 +541,31 @@ GenomeClass {
 	float res = 0.;
 	float overlapTrack15 = 0.;
 	//float overlapDisponibility = 0.;
-	int i = 0;
-
-	Track* track;
-	Session* session;
 
 	Track* track15 = findTrack(tracks, 15);
 	Session* session15;
+
+	for(unsigned int s = 0;s<track15->sessions.size();s++){
+		session15 = track15->sessions[s];
+
+		for(unsigned int i = 0; i < NB_SESSIONS; i++) {
+
+			if(Genome.match[i].sessionID != session15->ID) {
+				//
+				if(Genome.match[i].trackID == 15) {
+					cout << "5 fois" << endl;
+				}
+			}
+			else {
+			}
+			/*
+			Genome.match[i].date.sec = 0;
+			Genome.match[i].date.min = ((int) random(0,12))*5; 	//0 à 55
+			Genome.match[i].date.hour = (int) random(0,24);		//0 à 23
+
+			Genome.match[i].date.nday = (int) random(0, NB_DAYS);*/
+		}
+	}
 
 	/*
 	for(unsigned int i = 0; i < NB_PAPERS; i++) {
