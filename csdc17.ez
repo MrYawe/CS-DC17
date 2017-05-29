@@ -24,12 +24,6 @@ _______________________________________________________________*/
 #include <ctime>        // struct std::tm
 
 
-/*
-#define Abs(x) ((x) < 0 ? -(x) : (x))
-#define MAX(x,y) ((x)>(y)?(x):(y))
-#define MIN(x,y) ((x)<(y)?(x):(y))
-*/
-
 #define NB_SESSIONS 54 	/* Nombre de sessions */
 #define NB_PAPERS 263 	/* Nombre de papers à placer */
 #define NB_DAYS 2
@@ -60,13 +54,13 @@ using namespace std;
 #define CONSTRAINT_2 6
 #define CONSTRAINT_3 7
 
-/* Classe représentant un cours. Un cours se compose de chaque élément ci-dessous.		*/
+/* Classe représentant des contraintes avec une date de début et une date de fin */
 class Constraint {
 	public:Date start;				/* Début de la contrainte	*/
 	public:Date end;				/* Fin de la contrainte		*/
 };
-/* Classe représentant une classe d'élèves.			*/
 
+/* Classe représentant un papier. */
 class Paper {
 	public:int ID;						/* Identifiant du papier 	*/
 	public:int TrackID;					/* Identifiant du track		*/
@@ -79,9 +73,10 @@ class Paper {
 	public:vector<Constraint> day2;	/* Contraintes du jour 2	*/
 	public:vector<Constraint> day3;	/* Contraintes du jour 3	*/
 
-	public:Date date;					/* Date de passage 			*/
+	//public:Date date;					/* Date de passage 			*/
 };
 
+/* Classe représentant un Session. */
 class Session {
 	public:int ID;
 	public:int TrackID;
@@ -89,6 +84,7 @@ class Session {
 	public:vector<Paper*> papers;
 };
 
+/* Classe représentant un Track. */
 class Track {
 	public:int ID;
 	public:vector<Session*> sessions;
@@ -100,20 +96,16 @@ class Track {
 /******///             DECLARATION DES VARIABLES GLOBALES               ///******/
 /********************************************************************************/
 
-float pMutPerGene = 0.5;		/* probabilité de mutation par individu	*/
+float pMutPerGene = 0.5;		/* probabilité de mutation d'un attribut par individu*/
 
-clock_t	start, finish;			/* Pour estimer le temps de calcul		*/
-double runDuration;				/* temps de calcul						*/
+clock_t	start, finish;			/* Pour estimer le temps de calcul	*/
+double runDuration;				/* temps de calcul					*/
 
-//vector<Constraint> eventDates; 	/* Dates de l'événement 				*/
-Constraint* eventDate; 				/* Date de l'événement 				*/
+Constraint* eventDate; 			/* Date de l'événement	 			*/
 
-vector<Track*> tracks; /* Liste contenant tous les e-tracks 		*/
+vector<Track*> tracks; 			/* Liste contenant tous les e-tracks 		*/
 
-struct tm eventStart; /* Date du début de l'event */
-
-int minTrack15=1000;
-int maxDispo=-1000;
+struct tm eventStart; 			/* Date du début de l'event */
 
 /* ---------------------------------------------------------------------------- */
 \end
@@ -123,41 +115,26 @@ int maxDispo=-1000;
 /******///             DECLARATION DES FONCTIONS GLOBALES               ///******/
 /********************************************************************************/
 
-/* Fonction de convertion, permet de changer une valeur numérique en texte pour son affichage	*/
-//template<typename T>string chiffre2string(T c) { ostringstream oss; oss << c; return oss.str(); }
-
+//Fonction permettant d'afficher l'heure/min de début et fin de contrainte
 void displayConstraint(Constraint c) {
 	cout << "    " << c.start.hour << "h" << c.start.min << " à " << c.end.hour << "h" << c.end.min << endl;
 }
 
+//Fonction permettant d'afficher une date
 void displayDate(Date d) {
 	cout << "    jour: " << d.nday << " " << d.hour << ":" << d.min << ":" << d.sec << endl;
 }
 
-/*void displayEventDate() {
-	cout << "Date de l'événement : Du ";
-
-	char mbstr[100];
-	char mbstr2[100];
-
-	if (std::strftime(mbstr, sizeof(mbstr), "%F %T", &(eventDate->start))){
-		std::cout << mbstr << " au ";
-	}
-	if (std::strftime(mbstr2, sizeof(mbstr2), "%F %T", &(eventDate->end)))
-	{
-		std::cout << mbstr2 << endl;
-	}
+//Setting starting date
+void setStartingDate(int year, int month, int day, int hour) {
+	eventStart.tm_sec = 0;
+	eventStart.tm_min = 0;
+	eventStart.tm_hour = hour;
+	eventStart.tm_mday = day;
+	eventStart.tm_mon = month - 1;
+	eventStart.tm_year = year - 1900;
 }
 
-void setEventDate() {
-	string jour_debut 	= "2015-09-30 06:00:00";
-	string jour_fin 	= "2015-10-01 23:59:59";
-
-	eventDate = new Constraint();
-
-	strptime(jour_debut.c_str(), "%F %T", &(eventDate->start));
-	strptime(jour_fin.c_str(), "%F %T", &(eventDate->end));
-}*/
 
 void drawWithoutReplacement(int* src, int* dest, int n) {
 	for (int k = 0; k < n; k++) {
@@ -186,6 +163,37 @@ void switchValues(int* tab, int size, int n) {
 	}
 }
 
+//Fonction retournant un pointeur vers le track dont l'ID est spécifié en paramètre
+Track* findTrack(vector<Track*> tracks, int trackID) {
+	for (unsigned i = 0; i < tracks.size(); i++) {
+		if(tracks[i]->ID == trackID) {
+			return tracks[i];
+		}
+	}
+	return NULL;
+}
+
+//Fonction retournant un pointeur vers la session dont l'ID est spécifié en paramètre
+Session* findSession(Track *track, int sessionID) {
+	for (unsigned i = 0; i < track->sessions.size(); i++) {
+		if(track->sessions[i]->ID == sessionID) {
+			return track->sessions[i];
+		}
+	}
+	return NULL;
+}
+
+//Fonction retournant un pointeur vers le paper dont l'ID est spécifié en paramètre
+Paper* findPaper(Session *session, int paperID) {
+	for (unsigned i = 0; i < session->papers.size(); i++) {
+		if(session->papers[i]->ID == paperID) {
+			return session->papers[i];
+		}
+	}
+	return NULL;
+}
+
+//Extraction d'un vecteur de contrainte à partir d'un string
 vector<Constraint> parseConstraints(string subject, int day) {
     vector<Constraint> res;
     std::regex re("\\[(\\d*):(\\d*),(\\d*):(\\d*)\\]");
@@ -208,16 +216,9 @@ vector<Constraint> parseConstraints(string subject, int day) {
 		d2.hour=stoi(matches[3].str());
 		d2.min=stoi(matches[4].str());
 		d2.sec=0;
-		//s1 >> std::get_time(&tm1, "%H:%M"); // or just %T in this case
-		//s2 >> std::get_time(&tm2, "%H:%M"); // or just %T in this case
 
 		cons->start = d1;
 		cons->end = d2;
-
-		//cout << "jour " << day << " " << endl;
-		//cout << matches[2].str() << endl;
-		//displaytm(cons->start);
-		//displaytm(cons->end);
 
         res.push_back(*cons);
         next++;
@@ -226,33 +227,7 @@ vector<Constraint> parseConstraints(string subject, int day) {
     return res;
 }
 
-Track* findTrack(vector<Track*> tracks, int trackID) {
-	for (unsigned i = 0; i < tracks.size(); i++) {
-		if(tracks[i]->ID == trackID) {
-			return tracks[i];
-		}
-	}
-	return NULL;
-}
-
-Session* findSession(Track *track, int sessionID) {
-	for (unsigned i = 0; i < track->sessions.size(); i++) {
-		if(track->sessions[i]->ID == sessionID) {
-			return track->sessions[i];
-		}
-	}
-	return NULL;
-}
-
-Paper* findPaper(Session *session, int paperID) {
-	for (unsigned i = 0; i < session->papers.size(); i++) {
-		if(session->papers[i]->ID == paperID) {
-			return session->papers[i];
-		}
-	}
-	return NULL;
-}
-
+//Fonction remplissant le vecteur de track à partir du txt en entrée
 void readPapersFile() {
     std::string delimiter = "|";
     ifstream fPaper;
@@ -298,6 +273,7 @@ void readPapersFile() {
                 i++;
             }
 
+            //Vérification si le Track existe, sinon il est créé
 			Track* track = findTrack(tracks, p->TrackID);
 			if(track == NULL) {
 				track = new Track();
@@ -305,6 +281,7 @@ void readPapersFile() {
 				tracks.push_back(track);
 			}
 
+			//Vérification si la session existe déjà, sinon elle est créée 
 			Session* session = findSession(track, p->SessionID);
 			if(session == NULL) {
 				session = new Session();
@@ -314,12 +291,16 @@ void readPapersFile() {
 				track->sessions.push_back(session);
 			}
 
-			session->papers.push_back(p);
+			//Ajoute la durée du paper à la durée globale de la session
         	session->duration+=p->duration;
+
+			//ajout du paper dans la session
+			session->papers.push_back(p);
         }
     }
 }
 
+//Fonction permettant d'afficher un paper et ses attributs
 void displayPapers(Paper p) {
     cout << "ID :" << p.ID << endl;
     cout << "TrackID :" << p.TrackID << endl;
@@ -363,21 +344,15 @@ void displayPapers(Paper p) {
 
 }
 
-
+//Fonction permettant de convertir une date en minutes
 int convertDateToMins(Date d) {
 	return d.nday*24*60 + d.hour*60 + d.min;
 }
 
-/*
-int getSessionDuration(Session* s){
-	int res=0;
-	for(unsigned int i=0;i<s->papers.size();i++){
-		s->papers[i];
-	}
-	return res;
-}*/
-
-
+//Fonction permettant de calculer le nombre de minutes de superpositions entre deux intervalles de dates
+//La fonction renvoit une valeur positive pour une superposition
+//La fonction renvoit une valeur négative dans le cas d'un éloignement entre les dates
+//Les arguments doivent entre convertis en minute
 int dateOverlapping(int date1_start, int date1_end, int date2_start, int date2_end) {
 	int later;
 	int early;
@@ -397,14 +372,17 @@ int dateOverlapping(int date1_start, int date1_end, int date2_start, int date2_e
 		//cout << "date 2 fini plus tôt" << endl;
 	}
 	int score = (early-later);
-	if(score<0){
+	if(score<0){ //TODO
 		score=0;
 	}
 
 	return score;
 }
 
-
+//Fonction permettant de calculer le nombre de minutes de superpositions entre deux débuts de dates et leur durée
+//La fonction renvoit une valeur positive pour une superposition
+//La fonction renvoit une valeur négative dans le cas d'un éloignement entre les dates
+//Les deux premiers arguments doivent être de type Date, les deux autres représentent un durée en seconde pour chaque date
 int dateOverlappingMins(Date d1, Date d2, int dur1, int dur2) {
 	int date1_start = convertDateToMins(d1);
 	int date1_end = convertDateToMins(d1)+dur1;
@@ -420,6 +398,10 @@ int dateOverlappingMins(Date d1, Date d2, int dur1, int dur2) {
 	return score;
 }
 
+//Fonction permettant de calculer le nombre de minutes de superpositions entre une Date et une contrainte
+//La fonction renvoit une valeur positive pour une superposition
+//La fonction renvoit une valeur négative dans le cas d'un éloignement entre les dates
+//Le premier argument est de type Date, le second est une durée en seconde, le 3eme est une Contrainte
 int dateOverlappingMinsConstraints(Date d1, int dur1, Constraint c) {
 	int date1_start = convertDateToMins(d1);
 	int date1_end = convertDateToMins(d1)+dur1;
@@ -436,11 +418,67 @@ int dateOverlappingMinsConstraints(Date d1, int dur1, Constraint c) {
 	return score;
 }
 
+int evaluateOverlapingConstraints(Paper* currentPaper, int paperStart, int paperEnd) {
 
+	vector<Constraint> day1;
+	vector<Constraint> day2;
+	vector<Constraint> day3;
 
+	Date d_start;
+	d_start.nday=0;
+	d_start.hour=0;
+	d_start.min=0;
+	d_start.sec=0; 
+	
+	Date d_end;
+	d_end.nday=0;
+	d_end.hour=23;
+	d_end.min=59;
+	d_end.sec=59;
 
+	int valueDisponibility=0;
 
+	day1=currentPaper->day1;
+	for(unsigned int c = 0;c<day1.size();c++){
+		valueDisponibility += dateOverlapping(paperStart, paperEnd, convertDateToMins(day1[c].start), convertDateToMins(day1[c].end));
+	}
 
+	day2=currentPaper->day2;
+	for(unsigned int c = 0;c<day2.size();c++){
+		valueDisponibility += dateOverlapping(paperStart, paperEnd, convertDateToMins(day2[c].start), convertDateToMins(day2[c].end));
+	}
+
+	day3=currentPaper->day3;
+	for(unsigned int c = 0;c<day3.size();c++){
+		valueDisponibility += dateOverlapping(paperStart, paperEnd, convertDateToMins(day3[c].start), convertDateToMins(day3[c].end));
+	}
+
+	//the 3 following if assume that if not constraint is set, the person is disponible the whole day
+	if(day1.size()==0) {
+		d_start.nday=0;
+		d_end.nday=0;
+		valueDisponibility += dateOverlapping(paperStart, paperEnd, convertDateToMins(d_start), convertDateToMins(d_end));
+	}
+
+	if(day2.size()==0) {
+		d_start.nday=1;
+		d_end.nday=1;
+		valueDisponibility += dateOverlapping(paperStart, paperEnd, convertDateToMins(d_start), convertDateToMins(d_end));
+	}
+
+	if(day3.size()==0) {
+		d_start.nday=2;
+		d_end.nday=2;
+		valueDisponibility += dateOverlapping(paperStart, paperEnd, convertDateToMins(d_start), convertDateToMins(d_end));
+	}
+
+	//if the paper is completely 
+	if(valueDisponibility==currentPaper->duration-1 || valueDisponibility==currentPaper->duration) {
+		//double the bonus added bonus in case of completly fitting
+		valueDisponibility*=2;
+	}
+	return valueDisponibility;
+}
 
 
 
@@ -480,56 +518,32 @@ GenomeClass {
 \end
 
 \Before everything else function:
+	// Start clock to compute running time afterwards
 	start = clock();
 
-	//setEventDate();
+	// Set event starting date
+	setStartingDate(2015, 5, 29, 6);
 
-	// Set event start date
-	eventStart.tm_sec = 0;
-	eventStart.tm_min = 0;
-	eventStart.tm_hour = 0;
-	eventStart.tm_mday = 29;
-	eventStart.tm_mon = 5 - 1;
-	eventStart.tm_year = 2017 - 1900;
-
+	// Load data from TXT
 	readPapersFile();
-
-	cout << endl;
-	//vector<Constraint> value = papers[0].day1;
-	cout << endl;
-	//tm start = value.start;
 
 \end
 
 
 \After everything else function:
+	// Stop clock to compute time afterwards
 	finish = clock();
 
+	// Compute run time
 	runDuration = (double)(finish - start) / CLOCKS_PER_SEC;
 	printf("TEMPS D'EXECUTION\t:\t%2.1f secondes\n", runDuration );
 
-	//std::cout << "Nb papers :" << papers.size() << "\n";
-	std::cout << "Nb tracks :" << tracks.size() << "\n";
 
-	int tab[tracks[0]->sessions[0]->papers.size()];
-	int drawBox[tracks[0]->sessions[0]->papers.size()];
-	for (unsigned int k = 0; k < tracks[0]->sessions[0]->papers.size() ; k++) {
-		drawBox[k] = tracks[0]->sessions[0]->papers[k]->ID;
-	}
-	drawWithoutReplacement(drawBox, tab, tracks[0]->sessions[0]->papers.size());
 
-	for (unsigned int i = 0; i < tracks[0]->sessions[0]->papers.size(); i++) {
-		std::cout << "Order: " << tab[i] << "\n";
-	}
 
-	switchValues(tab, tracks[0]->sessions[0]->papers.size(), 1);
-
-	std::cout << "\n";
-	for (unsigned int i = 0; i < tracks[0]->sessions[0]->papers.size(); i++) {
-		std::cout << "Order: " << tab[i] << "\n";
-	}
-
-	// Ouput result
+	// Save an output txt 
+	// Format is 
+	// PaperID TrackID day-month-year hour:min:sec
 	ofstream outputFile;
 	outputFile.open ("result.txt");
 
@@ -537,9 +551,10 @@ GenomeClass {
 	tm* eventStartTest = localtime(&eventStartTime);
 	printf ("START EVENT: %s", asctime(eventStartTest));
 
+
 	for (unsigned int i = 0; i < NB_SESSIONS; i++) {
 		int secSinceEventStart = convertDateToMins(bBest->match[i].date)*60;
-		time_t timeSessionStart = mktime(&eventStart) + secSinceEventStart;
+		time_t timeSessionStart = mktime(&eventStart) + secSinceEventStart - (eventStart.tm_hour*60*60);
 		//tm* dateSessionStart = localtime(&timeSessionStart);
 
 		Track *currentTrack = findTrack(tracks, bBest->match[i].trackID);
@@ -556,59 +571,31 @@ GenomeClass {
 			strftime(buffer, 80, "%d-%m-%Y %T", datePaperStart);
 			outputFile << currentPaper->ID << " " << currentPaper->TrackID << " " << buffer << endl;
 
-			secSinceSessionStart =+ currentPaper->duration*60;
+			secSinceSessionStart += currentPaper->duration*60;
 		}
 	}
-
 	outputFile.close();
 
 
-	std::cout << "Best :" << bBest->match[0].sessionID << "\n";
-	std::cout << "score :" << bBest->evaluate() << "\n";
+	std::cout << "Best score :" << bBest->evaluate() << endl;
+	/*
+	int tab[tracks[0]->sessions[0]->papers.size()];
+	int drawBox[tracks[0]->sessions[0]->papers.size()];
+	for (unsigned int k = 0; k < tracks[0]->sessions[0]->papers.size() ; k++) {
+		drawBox[k] = tracks[0]->sessions[0]->papers[k]->ID;
+	}
+	drawWithoutReplacement(drawBox, tab, tracks[0]->sessions[0]->papers.size());
 
+	for (unsigned int i = 0; i < tracks[0]->sessions[0]->papers.size(); i++) {
+		std::cout << "Order: " << tab[i] << "\n";
+	}
 
-	cout << "track15: " << minTrack15 << endl;
-	cout << "dispo: " << maxDispo << endl;
-	//displayPapers(papers[0]);
+	switchValues(tab, tracks[0]->sessions[0]->papers.size(), 1);
 
-	//displayEventDate();
-/*
-	cout << "overlapping dates : " << endl;
-	Date d1;
-
-	d1.nday = 	1;
-	d1.hour =	10;
-	d1.min =	00;
-	d1.sec = 	0;
-
-	Date d2;
-
-	d2.nday = 	1;
-	d2.hour =	11;
-	d2.min =	00;
-	d2.sec = 	0;
-
-	int dur1=30;
-	int dur2=30;
-
-	cout << " test : " << dateOverlappingMins(d1,d2,dur1,dur2);
-*/
-	/*cout << "overlapping constraints : " << endl;
-	Date d1;
-
-	d1.nday = 	1;
-	d1.hour =	23;
-	d1.min =	45;
-	d1.sec = 	0;
-
-	int dur1 =	30;
-
-	Constraint c = papers[6].day1[0];
-
-	displayConstraint(c);
-
-	int test = dateOverlappingMinsConstraints(d1, dur1, c);
-	cout << " test overlap : " << test << endl;*/
+	std::cout << "\n";
+	for (unsigned int i = 0; i < tracks[0]->sessions[0]->papers.size(); i++) {
+		std::cout << "Order: " << tab[i] << "\n";
+	}*/
 
 \end
 
@@ -635,21 +622,39 @@ GenomeClass {
 		for(unsigned int s = 0; s < track->sessions.size(); s++) {
 			Session* session = track->sessions[s];
 
-			Genome.match[i].nbPapers = session->papers.size();
-			Genome.match[i].trackID = session->TrackID;
-			Genome.match[i].sessionID = session->ID;
-			Genome.match[i].duration = session->duration;
-			//cout << "trackIDDD : " << session->TrackID << " i : " << i << " pepersize " << session->papers.size() << endl;
+			Genome.match[i].nbPapers = session->papers.size();	//Setting the number of papers contained in the Session
+			Genome.match[i].trackID = session->TrackID;			//Setting the trackID
+			Genome.match[i].sessionID = session->ID;			//Setting the sessionID
+			Genome.match[i].duration = session->duration;		//Setting the duration of the session
 
+			//Draw position to set an order to the papers in the session
 			int drawBox[session->papers.size()];
 			for (unsigned int k = 0; k < session->papers.size() ; k++) {
 				drawBox[k] = session->papers[k]->ID;
 			}
 			drawWithoutReplacement(drawBox, Genome.match[i].order, session->papers.size());
-			Genome.match[i].date.sec = 0;
-			Genome.match[i].date.min = ((int) random(0,12))*5;
-			Genome.match[i].date.hour = (int) random(0,24);
-			Genome.match[i].date.nday = (int) random(0, NB_DAYS);
+
+			Genome.match[i].date.nday = (int) random(0, NB_DAYS); 	//Setting the nday, representing the day number since the beginning
+
+			if(Genome.match[i].date.nday)							//Si on ne tire pas au sort le premier jour
+			{
+				//si le dernier jour est tiré alors on soustrait la durée au démarrage possible pour éviter que la session dépasse l'événement
+				if(Genome.match[i].date.nday+1 == NB_DAYS) { 	
+					int hoursToSubstract = Genome.match[i].duration/60+1;
+					Genome.match[i].date.hour = (int) random(0,24-hoursToSubstract);
+				} else { //Sinon on tire au sort entre 0 et 23
+					Genome.match[i].date.hour = (int) random(0,24);
+				}
+
+				Genome.match[i].date.sec = 0;
+				Genome.match[i].date.min = ((int) random(0,12))*5;	
+			} else													//Si on tire au sort le premier jour
+			{
+				Genome.match[i].date.sec = 0;
+				Genome.match[i].date.min = ((int) random(eventStart.tm_min/5,12))*5;	//Tirage au sort à partir de la minute de début
+				Genome.match[i].date.hour = (int) random(eventStart.tm_hour,24);		//Tirage au sort à partir de l'heure de début
+			}
+
 			i++;
 		}
 	}
@@ -669,18 +674,41 @@ GenomeClass {
 \GenomeClass::mutator : // Must return the number of mutations
 	unsigned int nbMutations = 0;
 	for(unsigned int i = 0; i < NB_SESSIONS; i++) {
-		if (tossCoin(pMutPerGene)){
-			//drawWithoutReplacement(Genome.match[i].order, Genome.match[i].nbPapers);
-			Genome.match[i].date.sec = 0;
-			Genome.match[i].date.min = ((int) random(0,12))*5; 	//0 à 55
-			Genome.match[i].date.hour = (int) random(0,24);		//0 à 23
-			Genome.match[i].date.nday = (int) random(0, NB_DAYS);
-
-			nbMutations++;
+		if (tossCoin(pMutPerGene)){		//toss coin pour mutation du jour
+			Genome.match[i].date.nday = (int) random(0, NB_DAYS); 	//Setting the nday, representing the day number since the beginning
 		}
 
-		int nbSwitch = random(0, Genome.match[i].nbPapers);
-		switchValues(Genome.match[i].order, Genome.match[i].nbPapers, nbSwitch);
+		if(Genome.match[i].date.nday)	//Si on ne tire pas au sort le premier jour
+		{
+			if (tossCoin(pMutPerGene)){	//toss coint pour mutation de l'heure
+				if(Genome.match[i].date.nday+1 == NB_DAYS) { 	
+					int hoursToSubstract = Genome.match[i].duration/60+1;
+					Genome.match[i].date.hour = (int) random(0,24-hoursToSubstract);
+				} else { //Sinon on tire au sort entre 0 et 23
+					Genome.match[i].date.hour = (int) random(0,24);
+				}
+			}
+			//Genome.match[i].date.sec = 0;
+			if(tossCoin(pMutPerGene)) { //toss coin pour mutation de la minute
+				Genome.match[i].date.min = ((int) random(0,12))*5;	
+			}
+		} 
+		else { 							//Si on tire au sort le premier jour
+			//Genome.match[i].date.sec = 0;
+			if(tossCoin(pMutPerGene)) { //toss coin pour mutation de la minute
+				Genome.match[i].date.min = ((int) random(eventStart.tm_min/5,12))*5;	//Tirage au sort à partir de la minute de début
+			}
+			if(tossCoin(pMutPerGene)) { //toss coin pour mutation de l'heure
+				Genome.match[i].date.hour = (int) random(eventStart.tm_hour,24);		//Tirage au sort à partir de l'heure de début
+			}
+		}
+
+		if(tossCoin(pMutPerGene)) { //toss coin pour mutation de l'ordre des papers
+			int nbSwitch = random(0, Genome.match[i].nbPapers);
+			switchValues(Genome.match[i].order, Genome.match[i].nbPapers, nbSwitch);
+		}
+
+		nbMutations++; //TODO MUTATION PER GENE ?
 
 	}
 	return nbMutations;
@@ -699,44 +727,29 @@ GenomeClass {
 	//Session* session15;
 
 	int valueOverlap15=0;
+
 	//Evaluator to let track 15 alone
 	for(unsigned int s = 0; s < NB_SESSIONS; s++) { //get track 15 sessions
 		if(Genome.match[s].trackID == 15) {
 			for(unsigned int i = 0; i < NB_SESSIONS; i++) { //compare to other sessions dates
 
 				if(Genome.match[i].trackID == 15 && Genome.match[i].sessionID == Genome.match[s].sessionID) {
-					//Nothing to do
+					//Case were comparing the sessions with itself : Nothing to do
 				} else {
+					//substraction the amount of overlap to the overlapScore
 					valueOverlap15=dateOverlappingMins(Genome.match[i].date, Genome.match[s].date, Genome.match[i].duration, Genome.match[s].duration);
-					overlapTrack15-=(valueOverlap15<0)?0:valueOverlap15;
-					//cout <<dateOverlappingMins(Genome.match[i].date, Genome.match[s].date, Genome.match[i].duration, Genome.match[s].duration) << endl;
+					//overlapTrack15-=(valueOverlap15<0)?0:valueOverlap15;
+					overlapTrack15-=valueOverlap15;
 				}
-
-				/*
-				Genome.match[i].date.sec = 0;
-				Genome.match[i].date.min = ((int) random(0,12))*5; 	//0 à 55
-				Genome.match[i].date.hour = (int) random(0,24);		//0 à 23
-
-				Genome.match[i].date.nday = (int) random(0, NB_DAYS);*/
 			}
 		}
 	}
 
-	/*Session* currentSession;
-	Track* currentTrack;
-	//Evaluator to respect the disponibility constraints
-	for(unsigned int i = 0; i < NB_SESSIONS; i++) { //loop on sessions
+	int valueDisponibility = 0;
 
-		currentTrack = findTrack(tracks, Genome.match[i].trackID);
-		currentSession = findSession(currentTrack, Genome.match[i].sessionID);
-
-		//evaluateConstraint(currentSession, Genome.match[i].date);
-
-
-	}*/
-
-
-	if(overlapTrack15<0)
+	//s'il y a un quelconque overlapping avec un track 15 et une autre eSession, alors le score est mis à 0,
+	//Car on ne souhaite garder que des calendriers qui respectent cette condition
+	if(overlapTrack15<0) 
 	{
 		res=0;
 	} else {
@@ -750,6 +763,19 @@ GenomeClass {
 		vector<Constraint> day2;
 		vector<Constraint> day3;
 
+		//Date to use as constraint that will assume that if no constraint is set for a given day, the person is disponible the whole
+		Date d_start;
+		d_start.nday=0;
+		d_start.hour=0;
+		d_start.min=0;
+		d_start.sec=0; 
+		
+		Date d_end;
+		d_end.nday=0;
+		d_end.hour=23;
+		d_end.min=59;
+		d_end.sec=59;
+
 		vector<Paper*> papers;
 
 		//Evaluator to respect the disponibility constraints
@@ -761,47 +787,67 @@ GenomeClass {
 			currentDurationStart=0;
 			sessionDateMins=convertDateToMins(Genome.match[i].date);
 
-			//evaluateConstraint(currentSession, Genome.match[i].date);
+			valueDisponibility=0;
+
 			for(int j = 0;j<Genome.match[i].nbPapers;j++) {
 				currentPaperID = Genome.match[i].order[j];
 				currentPaper = findPaper(currentSession, currentPaperID);
 
+
+				
+				//valueDisponibility=evaluateOverlapingConstraints(currentPaper, sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration);
+				
 				day1=currentPaper->day1;
 				for(unsigned int c = 0;c<day1.size();c++){
-					//day1[c]
-					overlapDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(day1[c].start), convertDateToMins(day1[c].end));
+					valueDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(day1[c].start), convertDateToMins(day1[c].end));
 				}
 
 				day2=currentPaper->day2;
 				for(unsigned int c = 0;c<day2.size();c++){
-					overlapDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(day2[c].start), convertDateToMins(day2[c].end));
+					valueDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(day2[c].start), convertDateToMins(day2[c].end));
 				}
 
 				day3=currentPaper->day3;
 				for(unsigned int c = 0;c<day3.size();c++){
-					overlapDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(day3[c].start), convertDateToMins(day3[c].end));
+					valueDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(day3[c].start), convertDateToMins(day3[c].end));
 				}
-				if(overlapDisponibility==currentPaper->duration-1 || overlapDisponibility==currentPaper->duration) {
-					//cout<<"fitttttt" <<endl;
+
+				//the 3 following if assume that if not constraint is set, the person is disponible the whole day
+				if(day1.size()==0) {
+					d_start.nday=0;
+					d_end.nday=0;
+					valueDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(d_start), convertDateToMins(d_end));
+				}
+
+				if(day2.size()==0) {
+					d_start.nday=1;
+					d_end.nday=1;
+					valueDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(d_start), convertDateToMins(d_end));
+				}
+
+				if(day3.size()==0) {
+					d_start.nday=2;
+					d_end.nday=2;
+					valueDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(d_start), convertDateToMins(d_end));
+				}
+
+				//if the paper is completely 
+				if(valueDisponibility==currentPaper->duration-1 || valueDisponibility==currentPaper->duration) {
+					//double the bonus added bonus in case of completly fitting
+					valueDisponibility*=2;
 				}
 
 				currentDurationStart+=currentPaper->duration;
-
+				overlapDisponibility+=valueDisponibility;
 				//overlapping = durée du papier à 1 min près ajout bonus
 			}
 		}
 
-		if(overlapTrack15<minTrack15) {
-			minTrack15=overlapTrack15;
-		}
-
-		if(overlapDisponibility>maxDispo) {
-			maxDispo=overlapDisponibility;
-		}
-		//cout<<"track15: "<<overlapTrack15<<endl;
 		//cout<<"disponibility: "<<overlapDisponibility<<endl;
 		res+=overlapTrack15;
+		//cout << "over : " <<overlapTrack15*100 << endl;
 		res+=overlapDisponibility;
+		//cout << overlapDisponibility <<endl;
 	}
 
 
@@ -814,50 +860,15 @@ CPPFLAGS+=-std=c++11
 \end
 
 
-/*
-\Default run parameters :       		// Please let the parameters appear in this order
-
-  Number of generations :	300	     		// NB_GEN
-  Time limit:			10 			// In seconds, 0 to deactivate
-  Population size :		100			// POP_SIZE
-  Offspring size :		100			// 40%
-  Mutation probability :	1       		// MUT_PROB
-  Crossover probability :	1	      		// XOVER_PROB
-  Evaluator goal :		Maximise      		// Maximise
-  Selection operator:		Tournament 2.0
-  Surviving parents:		90%			// percentage or absolute
-  Surviving offspring:		90%
-  Reduce parents operator:	Tournament 2
-  Reduce offspring operator:	Tournament 2
-  Final reduce operator:	Tournament 2
-
-  Elitism:			Strong			//Weak or Strong
-  Elite:			1
-  Print stats:			true			//Default: 1
-  Generate csv stats file:	false
-  Generate gnuplot script:	false
-  Generate R script:		false
-  Plot stats:			true			//Default: 0
-
-  //Remote island model:		false
-  //IP file:			ip.txt 			//File containing all the remote island's IP
-  Migration probability:	0
-
-  Save population:		false
-  Start from file:		false
-
-\end*/
-
-
 \Default run parameters :        // Please let the parameters appear in this order
-  Number of generations : 300    // NB_GEN
+  Number of generations : 150    // NB_GEN
   Time limit: 0 			           // In seconds, 0 to deactivate
   Population size : 64		   //POP_SIZE
   Offspring size : 64// or a xx%
-  Mutation probability : 0.8       // MUT_PROB
+  Mutation probability : 1       // MUT_PROB
   Crossover probability : 1      // XOVER_PROB
   Evaluator goal : maximise      // maximise
-  Selection operator: Tournament 0.6
+  Selection operator: Tournament 2.0
   Surviving parents: 100%        // Percentage or absolute
   Surviving offspring: 100%      // Percentage or absolute  d
   Reduce parents operator: Tournament 2
@@ -874,7 +885,7 @@ CPPFLAGS+=-std=c++11
 
   //Remote island model: true
   //IP file: ip.txt 			         // List of IP:PORT of islands to send individuals to
-  Migration probability: 0.3    // Probability of sending an individual per generation
+  Migration probability: 0.2    // Probability of sending an individual per generation
   //Server port : 2929
 
   Save population: false
