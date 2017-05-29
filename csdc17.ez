@@ -110,6 +110,11 @@ Constraint* eventDate; 				/* Date de l'événement 				*/
 
 vector<Track*> tracks; /* Liste contenant tous les e-tracks 		*/
 
+
+int minTrack15=1000;
+int maxDispo=-1000;
+
+
 /* ---------------------------------------------------------------------------- */
 \end
 
@@ -470,7 +475,7 @@ Match {
 }
 
 GenomeClass {
-	Match match[NB_PAPERS];
+	Match match[NB_SESSIONS];
 }
 \end
 
@@ -479,7 +484,6 @@ GenomeClass {
 
 	//setEventDate();
 	readPapersFile();
-
 
 	cout << endl;
 	//vector<Constraint> value = papers[0].day1;
@@ -505,21 +509,25 @@ GenomeClass {
 	}
 	drawWithoutReplacement(drawBox, tab, tracks[0]->sessions[0]->papers.size());
 
-	for (int i = 0; i < tracks[0]->sessions[0]->papers.size(); i++) {
+	for (unsigned int i = 0; i < tracks[0]->sessions[0]->papers.size(); i++) {
 		std::cout << "Order: " << tab[i] << "\n";
 	}
 
 	switchValues(tab, tracks[0]->sessions[0]->papers.size(), 1);
 
 	std::cout << "\n";
-	for (int i = 0; i < tracks[0]->sessions[0]->papers.size(); i++) {
+	for (unsigned int i = 0; i < tracks[0]->sessions[0]->papers.size(); i++) {
 		std::cout << "Order: " << tab[i] << "\n";
 	}
 
 
 
 	std::cout << "Best :" << bBest->match[0].sessionID << "\n";
+	std::cout << "score :" << bBest->evaluate() << "\n";
 
+
+	cout << "track15: " << minTrack15 << endl;
+	cout << "dispo: " << maxDispo << endl;
 	//displayPapers(papers[0]);
 
 	//displayEventDate();
@@ -687,55 +695,76 @@ GenomeClass {
 	}*/
 
 
-	Session* currentSession;
-	Track* currentTrack;
-	Paper* currentPaper;
-	int currentPaperID;
-	int sessionDateMins = 0;
-	int currentDurationStart = 0;
-	vector<Constraint> day1;
-	vector<Constraint> day2;
-	vector<Constraint> day3;
+	if(overlapTrack15<0)
+	{
+		res=0;
+	} else {
+		Session* currentSession;
+		Track* currentTrack;
+		Paper* currentPaper;
+		int currentPaperID;
+		int sessionDateMins = 0;
+		int currentDurationStart = 0;
+		vector<Constraint> day1;
+		vector<Constraint> day2;
+		vector<Constraint> day3;
 
-	vector<Paper*> papers;
+		vector<Paper*> papers;
 
-	//Evaluator to respect the disponibility constraints
-	for(unsigned int i = 0; i < NB_SESSIONS; i++) { //loop on sessions
+		//Evaluator to respect the disponibility constraints
+		for(unsigned int i = 0; i < NB_SESSIONS; i++) { //loop on sessions
 
-		currentTrack = findTrack(tracks, Genome.match[i].trackID);
-		currentSession = findSession(currentTrack, Genome.match[i].sessionID);
+			currentTrack = findTrack(tracks, Genome.match[i].trackID);
+			currentSession = findSession(currentTrack, Genome.match[i].sessionID);
 
-		currentDurationStart=0;
-		sessionDateMins=convertDateToMins(Genome.match[i].date);
+			currentDurationStart=0;
+			sessionDateMins=convertDateToMins(Genome.match[i].date);
 
-		//evaluateConstraint(currentSession, Genome.match[i].date);
-		for(unsigned int j = 0;j<Genome.match[i].nbPapers;j++) {
-			currentPaperID = Genome.match[i].order[j];
-			currentPaper = findPaper(currentSession, currentPaperID);
+			//evaluateConstraint(currentSession, Genome.match[i].date);
+			for(int j = 0;j<Genome.match[i].nbPapers;j++) {
+				currentPaperID = Genome.match[i].order[j];
+				currentPaper = findPaper(currentSession, currentPaperID);
 
-			day1=currentPaper->day1;
-			for(unsigned int c = 0;c<day1.size();c++){
-				//day1[c]
-				overlapDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(day1[c].start), convertDateToMins(day1[c].end));
+				day1=currentPaper->day1;
+				for(unsigned int c = 0;c<day1.size();c++){
+					//day1[c]
+					overlapDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(day1[c].start), convertDateToMins(day1[c].end));
+				}
+
+				day2=currentPaper->day2;
+				for(unsigned int c = 0;c<day2.size();c++){
+					overlapDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(day2[c].start), convertDateToMins(day2[c].end));
+				}
+
+				day3=currentPaper->day3;
+				for(unsigned int c = 0;c<day3.size();c++){
+					overlapDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(day3[c].start), convertDateToMins(day3[c].end));
+				}
+				if(overlapDisponibility==currentPaper->duration-1 || overlapDisponibility==currentPaper->duration) {
+					//cout<<"fitttttt" <<endl;
+				}
+
+				currentDurationStart+=currentPaper->duration;
+
+				//overlapping = durée du papier à 1 min près ajout bonus
 			}
-
-			day2=currentPaper->day2;
-			for(unsigned int c = 0;c<day2.size();c++){
-				overlapDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(day2[c].start), convertDateToMins(day2[c].end));
-			}
-
-			day3=currentPaper->day3;
-			for(unsigned int c = 0;c<day3.size();c++){
-				overlapDisponibility += dateOverlapping(sessionDateMins+currentDurationStart, sessionDateMins+currentDurationStart+currentPaper->duration, convertDateToMins(day3[c].start), convertDateToMins(day3[c].end));
-			}
-			currentDurationStart+=currentPaper->duration;
-
-			//overlapping = durée du papier à 1 min près ajout bonus
 		}
-	}
+		
+		if(overlapTrack15<minTrack15) {
+			minTrack15=overlapTrack15;
+		}
 
-	res+=overlapTrack15;
-	res+=overlapDisponibility;
+		if(overlapDisponibility>maxDispo) {
+			maxDispo=overlapDisponibility;
+		}
+		//cout<<"track15: "<<overlapTrack15<<endl;
+		//cout<<"disponibility: "<<overlapDisponibility<<endl;
+		res+=overlapTrack15;
+		res+=overlapDisponibility;
+	}
+	
+
+	
   	return res;
 \end
 
@@ -743,9 +772,44 @@ GenomeClass {
 CPPFLAGS+=-std=c++11
 \end
 
-/*mutation et crossover à 0 pour seqfault*/
+
+/*
+\Default run parameters :       		// Please let the parameters appear in this order
+
+  Number of generations :	300	     		// NB_GEN
+  Time limit:			10 			// In seconds, 0 to deactivate
+  Population size :		100			// POP_SIZE
+  Offspring size :		100			// 40% 
+  Mutation probability :	1       		// MUT_PROB
+  Crossover probability :	1	      		// XOVER_PROB
+  Evaluator goal :		Maximise      		// Maximise
+  Selection operator:		Tournament 2.0
+  Surviving parents:		90%			// percentage or absolute  
+  Surviving offspring:		90%
+  Reduce parents operator:	Tournament 2
+  Reduce offspring operator:	Tournament 2
+  Final reduce operator:	Tournament 2
+
+  Elitism:			Strong			//Weak or Strong
+  Elite:			1
+  Print stats:			true			//Default: 1
+  Generate csv stats file:	false			
+  Generate gnuplot script:	false
+  Generate R script:		false
+  Plot stats:			true			//Default: 0
+
+  //Remote island model:		false
+  //IP file:			ip.txt 			//File containing all the remote island's IP
+  Migration probability:	0
+
+  Save population:		false
+  Start from file:		false
+  
+\end*/
+
+
 \Default run parameters :        // Please let the parameters appear in this order
-  Number of generations : 100    // NB_GEN
+  Number of generations : 300    // NB_GEN
   Time limit: 0 			           // In seconds, 0 to deactivate
   Population size : 64		   //POP_SIZE
   Offspring size : 64// or a xx%
