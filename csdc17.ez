@@ -110,6 +110,8 @@ Constraint* eventDate; 				/* Date de l'événement 				*/
 
 vector<Track*> tracks; /* Liste contenant tous les e-tracks 		*/
 
+struct tm eventStart; /* Date du début de l'event */
+
 /* ---------------------------------------------------------------------------- */
 \end
 
@@ -470,7 +472,7 @@ Match {
 }
 
 GenomeClass {
-	Match match[NB_PAPERS];
+	Match match[NB_SESSIONS];
 }
 \end
 
@@ -478,6 +480,15 @@ GenomeClass {
 	start = clock();
 
 	//setEventDate();
+
+	// Set event start date
+	eventStart.tm_sec = 0;
+	eventStart.tm_min = 0;
+	eventStart.tm_hour = 0;
+	eventStart.tm_mday = 29;
+	eventStart.tm_mon = 5 - 1;
+	eventStart.tm_year = 2017 - 1900;
+
 	readPapersFile();
 
 
@@ -516,9 +527,42 @@ GenomeClass {
 		std::cout << "Order: " << tab[i] << "\n";
 	}
 
+	// Ouput result
+	ofstream outputFile;
+	outputFile.open ("result.txt");
+
+	time_t eventStartTime = mktime(&eventStart);
+	tm* eventStartTest = localtime(&eventStartTime);
+	printf ("START EVENT: %s", asctime(eventStartTest));
+
+	for (unsigned int i = 0; i < NB_SESSIONS; i++) {
+		int secSinceEventStart = convertDateToMins(bBest->match[i].date)*60;
+		time_t timeSessionStart = mktime(&eventStart) + secSinceEventStart;
+		//tm* dateSessionStart = localtime(&timeSessionStart);
+
+		Track *currentTrack = findTrack(tracks, bBest->match[i].trackID);
+		Session *currentSession = findSession(currentTrack, bBest->match[i].sessionID);
+
+		int secSinceSessionStart = 0;
+		for (size_t j = 0; j < currentSession->papers.size(); j++) {
+			Paper *currentPaper = findPaper(currentSession, bBest->match[i].order[j]);
+
+			time_t timePaperStart = timeSessionStart + secSinceSessionStart;
+			tm* datePaperStart = localtime(&timePaperStart);
+
+			char buffer [80];
+			strftime(buffer, 80, "%d-%m-%Y %T", datePaperStart);
+			outputFile << currentPaper->ID << " " << currentPaper->TrackID << " " << buffer << endl;
+
+			secSinceSessionStart =+ currentPaper->duration*60;
+		}
+	}
+
+	outputFile.close();
 
 
-	std::cout << "Best :" << bBest->match[0].sessionID << "\n";
+
+
 
 	//displayPapers(papers[0]);
 
