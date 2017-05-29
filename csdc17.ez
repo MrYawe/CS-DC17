@@ -26,7 +26,7 @@ _______________________________________________________________*/
 
 #define NB_SESSIONS 54 	/* Nombre de sessions */
 #define NB_PAPERS 263 	/* Nombre de papers à placer */
-#define NB_DAYS 2
+#define NB_DAYS 3
 
 
 using namespace std;
@@ -106,6 +106,7 @@ Constraint* eventDate; 			/* Date de l'événement	 			*/
 vector<Track*> tracks; 			/* Liste contenant tous les e-tracks 		*/
 
 struct tm eventStart; 			/* Date du début de l'event */
+struct tm eventEnd; 			/* Date de fin de l'event */
 
 /* ---------------------------------------------------------------------------- */
 \end
@@ -134,6 +135,17 @@ void setStartingDate(int year, int month, int day, int hour) {
 	eventStart.tm_mon = month - 1;
 	eventStart.tm_year = year - 1900;
 }
+
+void setEndingDate(int year, int month, int day, int hour) {
+	eventEnd.tm_sec = 0;
+	eventEnd.tm_min = 0;
+	eventEnd.tm_hour = hour;
+	eventEnd.tm_mday = day;
+	eventEnd.tm_mon = month - 1;
+	eventEnd.tm_year = year - 1900;
+}
+
+
 
 
 void drawWithoutReplacement(int* src, int* dest, int n) {
@@ -523,6 +535,7 @@ GenomeClass {
 
 	// Set event starting date
 	setStartingDate(2015, 5, 29, 6);
+	setEndingDate(2015, 5, 31, 6);
 
 	// Load data from TXT
 	readPapersFile();
@@ -539,17 +552,19 @@ GenomeClass {
 	printf("TEMPS D'EXECUTION\t:\t%2.1f secondes\n", runDuration );
 
 
-
-
 	// Save an output txt 
 	// Format is 
 	// PaperID TrackID day-month-year hour:min:sec
 	ofstream outputFile;
+	ofstream outputCal;
 	outputFile.open ("result.txt");
+	outputCal.open ("events.ics");
 
 	time_t eventStartTime = mktime(&eventStart);
 	tm* eventStartTest = localtime(&eventStartTime);
 	printf ("START EVENT: %s", asctime(eventStartTest));
+
+	outputCal << "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//hacksw/handcal//NONSGML v1.0//EN\n";
 
 
 	for (unsigned int i = 0; i < NB_SESSIONS; i++) {
@@ -571,10 +586,24 @@ GenomeClass {
 			strftime(buffer, 80, "%d-%m-%Y %T", datePaperStart);
 			outputFile << currentPaper->ID << " " << currentPaper->TrackID << " " << buffer << endl;
 
-			secSinceSessionStart += currentPaper->duration*60;
+			secSinceSessionStart =+ currentPaper->duration*60;
+
+			time_t timePaperEnd = timeSessionStart + secSinceSessionStart;
+			tm* datePaperEnd = localtime(&timePaperEnd);
+
+			strftime(buffer, 80, "%Y%m%dT%H%M%SZ", datePaperStart); // exemple: 19970714T170000Z
+			outputCal << "BEGIN:VEVENT\n";
+			outputCal << "DTSTART:" << buffer << "\n";
+			strftime(buffer, 80, "%Y%m%dT%H%M%SZ", datePaperEnd); // exemple: 19970714T170000Z
+			outputCal << "DTEND:" << buffer << "\n";
+			outputCal << "SUMMARY:" << currentPaper->ID << "\n";
+			outputCal << "END:VEVENT\n";
 		}
 	}
+	outputCal << "END:VCALENDAR\n";
+
 	outputFile.close();
+	outputCal.close();
 
 
 	std::cout << "Best score :" << bBest->evaluate() << endl;
@@ -636,9 +665,9 @@ GenomeClass {
 
 			Genome.match[i].date.nday = (int) random(0, NB_DAYS); 	//Setting the nday, representing the day number since the beginning
 
-			if(Genome.match[i].date.nday)							//Si on ne tire pas au sort le premier jour
+			if(Genome.match[i].date.nday)	//Si on tire au sort un autre jour que le premier
 			{
-				//si le dernier jour est tiré alors on soustrait la durée au démarrage possible pour éviter que la session dépasse l'événement
+				//si le dernier jour est tiré alors on soustrait la durée au démarrage possible à la fin de l'évenement pour éviter que la session dépasse l'événement
 				if(Genome.match[i].date.nday+1 == NB_DAYS) { 	
 					int hoursToSubstract = Genome.match[i].duration/60+1;
 					Genome.match[i].date.hour = (int) random(0,24-hoursToSubstract);
@@ -676,6 +705,7 @@ GenomeClass {
 	for(unsigned int i = 0; i < NB_SESSIONS; i++) {
 		if (tossCoin(pMutPerGene)){		//toss coin pour mutation du jour
 			Genome.match[i].date.nday = (int) random(0, NB_DAYS); 	//Setting the nday, representing the day number since the beginning
+			nbMutations++; 
 		}
 
 		if(Genome.match[i].date.nday)	//Si on ne tire pas au sort le premier jour
@@ -687,28 +717,32 @@ GenomeClass {
 				} else { //Sinon on tire au sort entre 0 et 23
 					Genome.match[i].date.hour = (int) random(0,24);
 				}
+				nbMutations++; 
 			}
 			//Genome.match[i].date.sec = 0;
 			if(tossCoin(pMutPerGene)) { //toss coin pour mutation de la minute
 				Genome.match[i].date.min = ((int) random(0,12))*5;	
+				nbMutations++; 
 			}
 		} 
 		else { 							//Si on tire au sort le premier jour
 			//Genome.match[i].date.sec = 0;
 			if(tossCoin(pMutPerGene)) { //toss coin pour mutation de la minute
 				Genome.match[i].date.min = ((int) random(eventStart.tm_min/5,12))*5;	//Tirage au sort à partir de la minute de début
+				nbMutations++; 
 			}
 			if(tossCoin(pMutPerGene)) { //toss coin pour mutation de l'heure
 				Genome.match[i].date.hour = (int) random(eventStart.tm_hour,24);		//Tirage au sort à partir de l'heure de début
+				nbMutations++; 
 			}
 		}
 
 		if(tossCoin(pMutPerGene)) { //toss coin pour mutation de l'ordre des papers
 			int nbSwitch = random(0, Genome.match[i].nbPapers);
 			switchValues(Genome.match[i].order, Genome.match[i].nbPapers, nbSwitch);
+			nbMutations++; 
 		}
 
-		nbMutations++; //TODO MUTATION PER GENE ?
 
 	}
 	return nbMutations;
@@ -738,8 +772,8 @@ GenomeClass {
 				} else {
 					//substraction the amount of overlap to the overlapScore
 					valueOverlap15=dateOverlappingMins(Genome.match[i].date, Genome.match[s].date, Genome.match[i].duration, Genome.match[s].duration);
-					//overlapTrack15-=(valueOverlap15<0)?0:valueOverlap15;
-					overlapTrack15-=valueOverlap15;
+					overlapTrack15-=(valueOverlap15<0)?0:valueOverlap15;
+					//overlapTrack15-=valueOverlap15;
 				}
 			}
 		}
