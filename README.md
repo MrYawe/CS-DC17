@@ -8,7 +8,11 @@ easea csdc17.ez
 
 
 ## Compilation C++ file
+```shell
 make
+```
 
 ## Execute csdc17 
+```shell
 ./csdc17
+```
