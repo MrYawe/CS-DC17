@@ -1,7 +1,7 @@
 # opti-stochastique-CS-DC17
 
 ## Compilation .ez file
-You will need to have EASEA installed : http://easea.unistra.fr/index.php/EASEA_platform
+You will need to have EASEA installed : http://easea.unistra.fr/index.php/EASEA_platform <br />
 easea csdc17.ez
 
 ## Compilation C++ file
