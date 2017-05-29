@@ -531,11 +531,15 @@ GenomeClass {
 
 	// Ouput result
 	ofstream outputFile;
+	ofstream outputCal;
 	outputFile.open ("result.txt");
+	outputCal.open ("events.ics");
 
 	time_t eventStartTime = mktime(&eventStart);
 	tm* eventStartTest = localtime(&eventStartTime);
 	printf ("START EVENT: %s", asctime(eventStartTest));
+
+	outputCal << "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//hacksw/handcal//NONSGML v1.0//EN\n";
 
 	for (unsigned int i = 0; i < NB_SESSIONS; i++) {
 		int secSinceEventStart = convertDateToMins(bBest->match[i].date)*60;
@@ -557,10 +561,23 @@ GenomeClass {
 			outputFile << currentPaper->ID << " " << currentPaper->TrackID << " " << buffer << endl;
 
 			secSinceSessionStart =+ currentPaper->duration*60;
+
+			time_t timePaperEnd = timeSessionStart + secSinceSessionStart;
+			tm* datePaperEnd = localtime(&timePaperEnd);
+
+			strftime(buffer, 80, "%Y%m%dT%H%M%SZ", datePaperStart); // exemple: 19970714T170000Z
+			outputCal << "BEGIN:VEVENT\n";
+			outputCal << "DTSTART:" << buffer << "\n";
+			strftime(buffer, 80, "%Y%m%dT%H%M%SZ", datePaperEnd); // exemple: 19970714T170000Z
+			outputCal << "DTEND:" << buffer << "\n";
+			outputCal << "SUMMARY:" << currentPaper->ID << "\n";
+			outputCal << "END:VEVENT\n";
 		}
 	}
+	outputCal << "END:VCALENDAR\n";
 
 	outputFile.close();
+	outputCal.close();
 
 
 	std::cout << "Best :" << bBest->match[0].sessionID << "\n";
