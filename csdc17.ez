@@ -26,7 +26,7 @@ _______________________________________________________________*/
 
 #define NB_SESSIONS 54 	/* Nombre de sessions */
 #define NB_PAPERS 263 	/* Nombre de papers à placer */
-#define NB_DAYS 3
+#define NB_DAYS 2
 
 
 using namespace std;
@@ -586,7 +586,7 @@ GenomeClass {
 			strftime(buffer, 80, "%d-%m-%Y %T", datePaperStart);
 			outputFile << currentPaper->ID << " " << currentPaper->TrackID << " " << buffer << endl;
 
-			secSinceSessionStart =+ currentPaper->duration*60;
+			secSinceSessionStart += currentPaper->duration*60;
 
 			time_t timePaperEnd = timeSessionStart + secSinceSessionStart;
 			tm* datePaperEnd = localtime(&timePaperEnd);
@@ -606,6 +606,7 @@ GenomeClass {
 	outputCal.close();
 
 
+	std::cout << "bbest :" << bBest->match[0].date.nday << " " << bBest->match[0].date.hour<< " " << bBest->match[0].date.min << endl;
 	std::cout << "Best score :" << bBest->evaluate() << endl;
 	/*
 	int tab[tracks[0]->sessions[0]->papers.size()];
@@ -665,10 +666,10 @@ GenomeClass {
 
 			Genome.match[i].date.nday = (int) random(0, NB_DAYS); 	//Setting the nday, representing the day number since the beginning
 
-			if(Genome.match[i].date.nday)	//Si on tire au sort un autre jour que le premier
+			if(Genome.match[i].date.nday)							//Si on ne tire pas au sort le premier jour
 			{
-				//si le dernier jour est tiré alors on soustrait la durée au démarrage possible à la fin de l'évenement pour éviter que la session dépasse l'événement
-				if(Genome.match[i].date.nday+1 == NB_DAYS) { 	
+				//si le dernier jour est tiré alors on soustrait la durée au démarrage possible pour éviter que la session dépasse l'événement
+				if(Genome.match[i].date.nday == NB_DAYS-1) { 	
 					int hoursToSubstract = Genome.match[i].duration/60+1;
 					Genome.match[i].date.hour = (int) random(0,24-hoursToSubstract);
 				} else { //Sinon on tire au sort entre 0 et 23
@@ -711,7 +712,7 @@ GenomeClass {
 		if(Genome.match[i].date.nday)	//Si on ne tire pas au sort le premier jour
 		{
 			if (tossCoin(pMutPerGene)){	//toss coint pour mutation de l'heure
-				if(Genome.match[i].date.nday+1 == NB_DAYS) { 	
+				if(Genome.match[i].date.nday == NB_DAYS-1) { 	
 					int hoursToSubstract = Genome.match[i].duration/60+1;
 					Genome.match[i].date.hour = (int) random(0,24-hoursToSubstract);
 				} else { //Sinon on tire au sort entre 0 et 23
@@ -772,8 +773,8 @@ GenomeClass {
 				} else {
 					//substraction the amount of overlap to the overlapScore
 					valueOverlap15=dateOverlappingMins(Genome.match[i].date, Genome.match[s].date, Genome.match[i].duration, Genome.match[s].duration);
-					overlapTrack15-=(valueOverlap15<0)?0:valueOverlap15;
-					//overlapTrack15-=valueOverlap15;
+					//overlapTrack15-=(valueOverlap15<0)?0:valueOverlap15;
+					overlapTrack15-=valueOverlap15;
 				}
 			}
 		}
