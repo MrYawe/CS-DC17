@@ -646,9 +646,16 @@ GenomeClass {
 
 \GenomeClass::initialiser : // "initializer" is also accepted
 	int i = 0;
+
+	int randJourDebut=0;
+	int randJourFin=NB_DAYS;
+
 	for(unsigned int t = 0; t < tracks.size(); t++) {
 		Track* track = tracks[t];
 		for(unsigned int s = 0; s < track->sessions.size(); s++) {
+			randJourDebut=0;
+			randJourFin=NB_DAYS;
+
 			Session* session = track->sessions[s];
 
 			Genome.match[i].nbPapers = session->papers.size();	//Setting the number of papers contained in the Session
@@ -663,14 +670,21 @@ GenomeClass {
 			}
 			drawWithoutReplacement(drawBox, Genome.match[i].order, session->papers.size());
 
-			Genome.match[i].date.nday = (int) random(0, NB_DAYS); 	//Setting the nday, representing the day number since the beginning
+			if(Genome.match[i].duration<=eventStart.tm_hour) {
+				randJourDebut++;
+			}
+			if(Genome.match[i].duration<=eventEnd.tm_hour) {
+				randJourFin--;
+			}
+
+			Genome.match[i].date.nday = (int) random(randJourDebut, randJourFin); 	//Setting the nday, representing the day number since the beginning
 
 			if(Genome.match[i].date.nday)							//Si on ne tire pas au sort le premier jour
 			{
 				//si le dernier jour est tiré alors on soustrait la durée au démarrage possible pour éviter que la session dépasse l'événement
-				if(Genome.match[i].date.nday == NB_DAYS-1) { 	
+				if(Genome.match[i].date.nday == NB_DAYS-1) { 	//Si on match le dernier jour
 					int hoursToSubstract = Genome.match[i].duration/60+1;
-					Genome.match[i].date.hour = (int) random(0,24-hoursToSubstract);
+					Genome.match[i].date.hour = (int) random(0,eventEnd.tm_hour-hoursToSubstract);
 				} else { //Sinon on tire au sort entre 0 et 23
 					Genome.match[i].date.hour = (int) random(0,24);
 				}
@@ -702,9 +716,20 @@ GenomeClass {
 
 \GenomeClass::mutator : // Must return the number of mutations
 	unsigned int nbMutations = 0;
+	int randJourDebut=0;
+	int randJourFin=NB_DAYS;
 	for(unsigned int i = 0; i < NB_SESSIONS; i++) {
 		if (tossCoin(pMutPerGene)*3.){		//toss coin pour mutation du jour
-			Genome.match[i].date.nday = (int) random(0, NB_DAYS); 	//Setting the nday, representing the day number since the beginning
+			if(Genome.match[i].duration<=eventStart.tm_hour) {
+				randJourDebut++;
+			}
+			if(Genome.match[i].duration<=eventEnd.tm_hour) {
+				randJourFin--;
+			}
+			Genome.match[i].date.nday = (int) random(randJourDebut, randJourFin); 	//Setting the nday, representing the day number since the beginning
+			randJourDebut=0;
+			randJourFin=NB_DAYS;
+
 			if(Genome.match[i].date.nday==0) {				//premier jour alors obligé de calculer
 				Genome.match[i].date.min = ((int) random(eventStart.tm_min/5,12))*5;	//Tirage au sort à partir de la minute de début
 				Genome.match[i].date.hour = (int) random(eventStart.tm_hour,24);		//Tirage au sort à partir de l'heure de début
