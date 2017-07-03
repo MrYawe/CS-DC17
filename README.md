@@ -16,5 +16,5 @@ make
 ```shell
 ./csdc17
 ```
-## Rapport 
+## Report
 https://github.com/MrYawe/CS-DC17/blob/master/Rapport_optimisationStochastique_2017.pdf
